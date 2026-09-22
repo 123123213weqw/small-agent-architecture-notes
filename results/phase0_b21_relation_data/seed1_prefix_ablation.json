@@ -1,0 +1,9 @@
+[
+  {"variant":"original","prefix_bytes_before_a":16,"success":0.18,"required_recall":0.42},
+  {"variant":"no_prefix","prefix_bytes_before_a":7,"success":1.0,"required_recall":1.0},
+  {"variant":"same_bytes_note","prefix_bytes_before_a":16,"success":0.25,"required_recall":0.465},
+  {"variant":"same_bytes_state","prefix_bytes_before_a":16,"success":0.21,"required_recall":0.44},
+  {"variant":"ascii_prefix","prefix_bytes_before_a":14,"success":0.23,"required_recall":0.49},
+  {"variant":"relation_suffix","prefix_bytes_before_a":7,"success":1.0,"required_recall":1.0},
+  {"variant":"relation_no_colon","prefix_bytes_before_a":13,"success":0.24,"required_recall":0.465}
+]

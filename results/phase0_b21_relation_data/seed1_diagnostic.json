@@ -1,0 +1,330 @@
+{
+  "baseline_seeds": [
+    {
+      "record_family": "D",
+      "goal_family": "D",
+      "success": 0.97,
+      "required_recall": 0.985,
+      "decision_accuracy": 0.9993786246893124,
+      "mean_regret": 0.0006213753106876554,
+      "episodes_with_required_eviction": 0.03,
+      "mean_required_evictions": 0.03,
+      "median_first_required_eviction": 27,
+      "seed": 0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "D",
+      "success": 0.18,
+      "required_recall": 0.42,
+      "decision_accuracy": 0.9830157415078707,
+      "mean_regret": 0.016984258492129246,
+      "episodes_with_required_eviction": 0.82,
+      "mean_required_evictions": 1.16,
+      "median_first_required_eviction": 30.5,
+      "seed": 1
+    },
+    {
+      "record_family": "D",
+      "goal_family": "D",
+      "success": 0.91,
+      "required_recall": 0.95,
+      "decision_accuracy": 0.998135874067937,
+      "mean_regret": 0.001864125932062966,
+      "episodes_with_required_eviction": 0.09,
+      "mean_required_evictions": 0.1,
+      "median_first_required_eviction": 42,
+      "seed": 2
+    }
+  ],
+  "seed1_goal_swap": [
+    {
+      "record_family": "D",
+      "goal_family": "D",
+      "success": 0.18,
+      "required_recall": 0.42,
+      "decision_accuracy": 0.9830157415078707,
+      "mean_regret": 0.016984258492129246,
+      "episodes_with_required_eviction": 0.82,
+      "mean_required_evictions": 1.16,
+      "median_first_required_eviction": 30.5
+    },
+    {
+      "record_family": "D",
+      "goal_family": "A",
+      "success": 0.16,
+      "required_recall": 0.415,
+      "decision_accuracy": 0.9826014913007457,
+      "mean_regret": 0.01739850869925435,
+      "episodes_with_required_eviction": 0.84,
+      "mean_required_evictions": 1.17,
+      "median_first_required_eviction": 30.0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "B",
+      "success": 0.16,
+      "required_recall": 0.41,
+      "decision_accuracy": 0.9826014913007457,
+      "mean_regret": 0.01739850869925435,
+      "episodes_with_required_eviction": 0.84,
+      "mean_required_evictions": 1.18,
+      "median_first_required_eviction": 30.0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "C",
+      "success": 0.17,
+      "required_recall": 0.415,
+      "decision_accuracy": 0.9828086164043082,
+      "mean_regret": 0.0171913835956918,
+      "episodes_with_required_eviction": 0.83,
+      "mean_required_evictions": 1.17,
+      "median_first_required_eviction": 31
+    },
+    {
+      "record_family": "D",
+      "goal_family": "E",
+      "success": 0.17,
+      "required_recall": 0.425,
+      "decision_accuracy": 0.9828086164043082,
+      "mean_regret": 0.0171913835956918,
+      "episodes_with_required_eviction": 0.83,
+      "mean_required_evictions": 1.15,
+      "median_first_required_eviction": 30
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R0",
+      "success": 0.2,
+      "required_recall": 0.445,
+      "decision_accuracy": 0.9834299917149959,
+      "mean_regret": 0.016570008285004142,
+      "episodes_with_required_eviction": 0.8,
+      "mean_required_evictions": 1.11,
+      "median_first_required_eviction": 30.0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R1",
+      "success": 0.18,
+      "required_recall": 0.4,
+      "decision_accuracy": 0.9830157415078707,
+      "mean_regret": 0.016984258492129246,
+      "episodes_with_required_eviction": 0.82,
+      "mean_required_evictions": 1.2,
+      "median_first_required_eviction": 27.0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R2",
+      "success": 0.16,
+      "required_recall": 0.395,
+      "decision_accuracy": 0.9826014913007457,
+      "mean_regret": 0.01739850869925435,
+      "episodes_with_required_eviction": 0.84,
+      "mean_required_evictions": 1.21,
+      "median_first_required_eviction": 29.5
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R3",
+      "success": 0.2,
+      "required_recall": 0.435,
+      "decision_accuracy": 0.9834299917149959,
+      "mean_regret": 0.016570008285004142,
+      "episodes_with_required_eviction": 0.8,
+      "mean_required_evictions": 1.13,
+      "median_first_required_eviction": 30.0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R4",
+      "success": 0.18,
+      "required_recall": 0.395,
+      "decision_accuracy": 0.9830157415078707,
+      "mean_regret": 0.016984258492129246,
+      "episodes_with_required_eviction": 0.82,
+      "mean_required_evictions": 1.21,
+      "median_first_required_eviction": 27.0
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R5",
+      "success": 0.21,
+      "required_recall": 0.44,
+      "decision_accuracy": 0.9836371168185584,
+      "mean_regret": 0.01636288318144159,
+      "episodes_with_required_eviction": 0.79,
+      "mean_required_evictions": 1.12,
+      "median_first_required_eviction": 30
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R6",
+      "success": 0.16,
+      "required_recall": 0.4,
+      "decision_accuracy": 0.9826014913007457,
+      "mean_regret": 0.01739850869925435,
+      "episodes_with_required_eviction": 0.84,
+      "mean_required_evictions": 1.2,
+      "median_first_required_eviction": 29.5
+    },
+    {
+      "record_family": "D",
+      "goal_family": "R7",
+      "success": 0.16,
+      "required_recall": 0.405,
+      "decision_accuracy": 0.9826014913007457,
+      "mean_regret": 0.01739850869925435,
+      "episodes_with_required_eviction": 0.84,
+      "mean_required_evictions": 1.19,
+      "median_first_required_eviction": 30.5
+    }
+  ],
+  "seed1_record_swap": [
+    {
+      "record_family": "D",
+      "goal_family": "D",
+      "success": 0.18,
+      "required_recall": 0.42,
+      "decision_accuracy": 0.9830157415078707,
+      "mean_regret": 0.016984258492129246,
+      "episodes_with_required_eviction": 0.82,
+      "mean_required_evictions": 1.16,
+      "median_first_required_eviction": 30.5
+    },
+    {
+      "record_family": "A",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "B",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "C",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "E",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R0",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R1",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R2",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R3",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R4",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R5",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R6",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    },
+    {
+      "record_family": "R7",
+      "goal_family": "D",
+      "success": 1.0,
+      "required_recall": 1.0,
+      "decision_accuracy": 1.0,
+      "mean_regret": 0.0,
+      "episodes_with_required_eviction": 0.0,
+      "mean_required_evictions": 0.0,
+      "median_first_required_eviction": null
+    }
+  ]
+}

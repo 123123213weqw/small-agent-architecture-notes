@@ -1,0 +1,147 @@
+{
+  "decision": "relation_data_fix_failed",
+  "pass": false,
+  "gates": {
+    "relation_mean_at_least_50pct": {
+      "value": 0.6866666666666666,
+      "pass": true
+    },
+    "every_seed_relation_at_least_35pct": {
+      "values": [
+        0.97,
+        0.18,
+        0.91
+      ],
+      "pass": false
+    },
+    "composition_within_2pp": {
+      "baseline": 0.86,
+      "augmented": 0.9388888888888888,
+      "pass": true
+    },
+    "other_tasks_preserved": {
+      "within_2pp": 4,
+      "no_drop_over_5pp": true,
+      "pass": true
+    },
+    "regret_increase_at_most_10pct": {
+      "value": -0.27515864780836347,
+      "pass": true
+    },
+    "parameters_unchanged": {
+      "ratio": 1.0,
+      "pass": true
+    }
+  },
+  "seed_comparisons": [
+    {
+      "seed": 0,
+      "relation_before": 0.25,
+      "relation_after": 0.97,
+      "relation_gain": 0.72,
+      "composition_before": 0.8733333333333333,
+      "composition_after": 0.9933333333333333,
+      "composition_gain": 0.12,
+      "regret_before": 0.0015239503250820171,
+      "regret_after": 0.0005664196206813004
+    },
+    {
+      "seed": 1,
+      "relation_before": 0.02,
+      "relation_after": 0.18,
+      "relation_gain": 0.16,
+      "composition_before": 0.8366666666666667,
+      "composition_after": 0.8416666666666667,
+      "composition_gain": 0.0050000000000000044,
+      "regret_before": 0.0024521047856759033,
+      "regret_after": 0.0021861289873959444
+    },
+    {
+      "seed": 2,
+      "relation_before": 0.22,
+      "relation_after": 0.91,
+      "relation_gain": 0.6900000000000001,
+      "composition_before": 0.87,
+      "composition_after": 0.9816666666666667,
+      "composition_gain": 0.11166666666666669,
+      "regret_before": 0.0014115785517750867,
+      "regret_after": 0.0011526310609863593
+    }
+  ],
+  "split_success": [
+    {
+      "split": "test_id",
+      "baseline_mean": 0.9983333333333334,
+      "baseline_std": 0.0028867513459481316,
+      "augmented_mean": 0.9972222222222222,
+      "augmented_std": 0.002545875386086576,
+      "gain": -0.0011111111111111738
+    },
+    {
+      "split": "test_composition",
+      "baseline_mean": 0.86,
+      "baseline_std": 0.02027587510099405,
+      "augmented_mean": 0.9388888888888888,
+      "augmented_std": 0.08439874494415273,
+      "gain": 0.07888888888888879
+    },
+    {
+      "split": "test_length",
+      "baseline_mean": 0.8494444444444444,
+      "baseline_std": 0.008552669065744836,
+      "augmented_mean": 0.9322222222222223,
+      "augmented_std": 0.08718328925846931,
+      "gain": 0.08277777777777784
+    },
+    {
+      "split": "test_semantic_stress",
+      "baseline_mean": 0.8727777777777779,
+      "baseline_std": 0.08107495388927549,
+      "augmented_mean": 0.8277777777777778,
+      "augmented_std": 0.07352877995371257,
+      "gain": -0.04500000000000004
+    }
+  ],
+  "composition_tasks": [
+    {
+      "task": "delayed_query",
+      "baseline_mean": 1.0,
+      "augmented_mean": 1.0,
+      "gain": 0.0
+    },
+    {
+      "task": "state_overwrite",
+      "baseline_mean": 0.9966666666666667,
+      "augmented_mean": 0.9899999999999999,
+      "gain": -0.006666666666666821
+    },
+    {
+      "task": "long_instruction",
+      "baseline_mean": 1.0,
+      "augmented_mean": 0.9566666666666667,
+      "gain": -0.043333333333333335
+    },
+    {
+      "task": "completed_intermediate",
+      "baseline_mean": 1.0,
+      "augmented_mean": 1.0,
+      "gain": 0.0
+    },
+    {
+      "task": "unresolved_subgoal",
+      "baseline_mean": 1.0,
+      "augmented_mean": 1.0,
+      "gain": 0.0
+    },
+    {
+      "task": "relation_chain",
+      "baseline_mean": 0.16333333333333333,
+      "augmented_mean": 0.6866666666666666,
+      "gain": 0.5233333333333333
+    }
+  ],
+  "mean_rollout_regret": {
+    "baseline": 0.0017958778875110024,
+    "augmented": 0.0013017265563545347
+  }
+}
