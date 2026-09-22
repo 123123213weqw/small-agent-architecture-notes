@@ -1,8 +1,17 @@
 import random
+import tempfile
 import unittest
+from pathlib import Path
 
 from experiments.phase0_ab import make_episode
-from experiments.phase0_b2_text import TextRenderer, encode_bytes, harden_episode
+from experiments.experiment_visualization import write_eviction_artifacts
+from experiments.phase0_b2_text import (
+    TextRenderer,
+    encode_bytes,
+    harden_episode,
+    lexical_scores,
+    run_scored_episode,
+)
 
 
 class Phase0B2Tests(unittest.TestCase):
@@ -34,6 +43,64 @@ class Phase0B2Tests(unittest.TestCase):
             self.assertEqual(original[uid], next(r for r in hardened.records if r.uid == uid))
         overlaps = [r for r in hardened.records if r.uid not in episode.required_ids and r.key in episode.goal_tokens]
         self.assertGreater(len(overlaps), 0)
+
+    def test_eviction_trace_contains_only_observed_competitors(self):
+        episode = make_episode(13, 32, random.Random(9), "state_overwrite")
+        renderer = TextRenderer("train")
+        traces = []
+        run_scored_episode(
+            episode,
+            4,
+            lambda ep, records, pos: lexical_scores(renderer, ep, records, pos),
+            renderer=renderer,
+            split="test",
+            policy="lexical",
+            trace=traces,
+        )
+        self.assertGreater(len(traces), 0)
+        for decision in traces:
+            self.assertEqual(len(decision["records"]), 5)
+            self.assertEqual(sum(bool(r["evicted"]) for r in decision["records"]), 1)
+            self.assertTrue(
+                all(r["position"] <= decision["decision_position"] for r in decision["records"])
+            )
+
+    def test_eviction_viewer_and_jsonl_are_written(self):
+        trace = {
+            "split": "id",
+            "policy": "text",
+            "episode": 1,
+            "task": "state_overwrite",
+            "capacity": 1,
+            "decision": 1,
+            "decision_position": 1,
+            "goal": "测试目标",
+            "candidate_uid": "b",
+            "evicted_uid": "a",
+            "oracle_evictions": ["a"],
+            "regret": 0.0,
+            "episode_success": True,
+            "records": [
+                {
+                    "uid": "a",
+                    "text": "旧记录",
+                    "position": 0,
+                    "age": 1,
+                    "is_candidate": False,
+                    "utility": 0.0,
+                    "score": 0.1,
+                    "evicted": True,
+                    "oracle": True,
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            write_eviction_artifacts(output, [trace])
+            self.assertIn("测试目标", (output / "eviction_trace.jsonl").read_text(encoding="utf-8"))
+            viewer = (output / "eviction_viewer.html").read_text(encoding="utf-8")
+            self.assertIn("记忆淘汰查看器", viewer)
+            self.assertIn("旧记录", viewer)
 
 
 if __name__ == "__main__":

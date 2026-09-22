@@ -42,6 +42,11 @@ from experiments.phase0_ab import (
     make_episodes,
     run_episode,
 )
+from experiments.experiment_visualization import (
+    create_summary_writer,
+    log_evaluation_to_tensorboard,
+    write_eviction_artifacts,
+)
 
 
 TRAIN_TEMPLATES: dict[str, tuple[str, ...]] = {
@@ -325,6 +330,7 @@ def train_model(
     val_examples: Sequence[TextExample],
     args: argparse.Namespace,
     device: torch.device,
+    writer: object | None = None,
 ) -> list[dict[str, float]]:
     train_loader = DataLoader(
         TextDataset(train_examples, args.max_bytes),
@@ -377,6 +383,12 @@ def train_model(
         }
         history.append(row)
         print(json.dumps(row), flush=True)
+        if writer is not None:
+            writer.add_scalar("training/train_weighted_mse", row["train_weighted_mse"], epoch + 1)
+            writer.add_scalar("training/validation_mse", row["val_mse"], epoch + 1)
+            writer.add_scalar("training/epoch_seconds", row["seconds"], epoch + 1)
+            writer.add_scalar("training/learning_rate", optimizer.param_groups[0]["lr"], epoch + 1)
+            writer.flush()
         if val < best:
             best = val
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
@@ -416,9 +428,15 @@ def run_scored_episode(
     episode: Episode,
     capacity: int,
     score_fn: Callable[[Episode, Sequence[Record], int], Sequence[float]],
+    *,
+    renderer: TextRenderer | None = None,
+    split: str = "",
+    policy: str = "text",
+    trace: list[dict[str, object]] | None = None,
 ) -> RunMetrics:
     memory: list[Record] = []
     correct, evictions, regret = 0, 0, 0.0
+    episode_traces: list[dict[str, object]] = []
     for rec in episode.records:
         competing = memory + [rec]
         if len(competing) <= capacity:
@@ -432,6 +450,40 @@ def run_scored_episode(
         correct += int(math.isclose(removed_u, min_u))
         evictions += 1
         regret += removed_u - min_u
+        if trace is not None:
+            if renderer is None:
+                raise ValueError("renderer is required when collecting an eviction trace")
+            oracle_ids = {item.uid for item in competing if math.isclose(utilities[item.uid], min_u)}
+            episode_traces.append(
+                {
+                    "split": split,
+                    "policy": policy,
+                    "episode": episode.eid,
+                    "task": episode.task,
+                    "capacity": capacity,
+                    "decision": evictions,
+                    "decision_position": rec.position,
+                    "goal": renderer.goal(episode),
+                    "candidate_uid": rec.uid,
+                    "evicted_uid": competing[idx].uid,
+                    "oracle_evictions": sorted(oracle_ids),
+                    "regret": float(removed_u - min_u),
+                    "records": [
+                        {
+                            "uid": item.uid,
+                            "text": renderer.record(item),
+                            "position": item.position,
+                            "age": rec.position - item.position,
+                            "is_candidate": item.uid == rec.uid,
+                            "utility": float(utilities[item.uid]),
+                            "score": float(scores[j]),
+                            "evicted": j == idx,
+                            "oracle": item.uid in oracle_ids,
+                        }
+                        for j, item in enumerate(competing)
+                    ],
+                }
+            )
         memory = [r for j, r in enumerate(competing) if j != idx]
     ids = {r.uid for r in memory}
     clauses = [float(set(c).issubset(ids)) for c in episode.clauses]
@@ -440,7 +492,7 @@ def run_scored_episode(
     if episode.task == "state_overwrite":
         final_required = next(iter(required))
         stale = float(final_required not in ids and any(r.key == episode.target_key for r in memory))
-    return RunMetrics(
+    metrics = RunMetrics(
         success=float(all(clauses)),
         clause_accuracy=sum(clauses) / max(1, len(clauses)),
         required_recall=len(required & ids) / max(1, len(required)),
@@ -448,6 +500,12 @@ def run_scored_episode(
         eviction_regret=regret / max(1, evictions),
         stale_value_rate=stale,
     )
+    if trace is not None:
+        for item in episode_traces:
+            item["episode_success"] = bool(metrics.success)
+            item["episode_required_recall"] = float(metrics.required_recall)
+        trace.extend(episode_traces)
+    return metrics
 
 
 def evaluate_split(
@@ -458,10 +516,13 @@ def evaluate_split(
     renderer: TextRenderer,
     text_scorer: TextScorer,
     structured: UtilityPredictor,
+    traces: list[dict[str, object]] | None = None,
+    trace_episodes: int = 0,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for i, episode in enumerate(episodes):
         capacity = capacities[i % len(capacities)]
+        text_trace = traces if traces is not None and i < trace_episodes else None
         baselines = {
             "random": run_episode(episode, capacity, "random", seed * 1_000_003 + i),
             "fifo": run_episode(episode, capacity, "fifo", seed * 1_000_003 + i),
@@ -470,7 +531,15 @@ def evaluate_split(
             "lexical": run_scored_episode(
                 episode, capacity, lambda ep, records, pos: lexical_scores(renderer, ep, records, pos)
             ),
-            "text": run_scored_episode(episode, capacity, text_scorer.scores),
+            "text": run_scored_episode(
+                episode,
+                capacity,
+                text_scorer.scores,
+                renderer=renderer,
+                split=split,
+                policy="text",
+                trace=text_trace,
+            ),
         }
         for policy, metric in baselines.items():
             rows.append(
@@ -579,6 +648,19 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=6)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--tensorboard-dir",
+        type=Path,
+        default=None,
+        help="TensorBoard 日志目录；默认写到 <output>/tensorboard。",
+    )
+    parser.add_argument("--no-tensorboard", action="store_true")
+    parser.add_argument(
+        "--trace-episodes",
+        type=int,
+        default=3,
+        help="每个测试集保存多少个 episode 的逐步记忆淘汰记录。",
+    )
     parser.add_argument("--quick", action="store_true")
     args = parser.parse_args()
     if args.quick:
@@ -602,6 +684,9 @@ def main() -> None:
         torch.cuda.manual_seed_all(args.seed)
         torch.backends.cuda.matmul.allow_tf32 = True
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.output.mkdir(parents=True, exist_ok=True)
+    tensorboard_dir = args.tensorboard_dir or (args.output / "tensorboard")
+    writer = create_summary_writer(tensorboard_dir, enabled=not args.no_tensorboard)
     capacities = (4, 8, 12)
     train_episodes = harden_episodes(
         make_episodes(args.train_episodes, (32, 48, 64), 41_000 + args.seed, args.seed * 10_000_000),
@@ -629,7 +714,7 @@ def main() -> None:
         ),
         flush=True,
     )
-    history = train_model(model, train_examples, val_examples, args, device)
+    history = train_model(model, train_examples, val_examples, args, device, writer)
 
     # Structured baseline is trained on the same episode family but receives the
     # simulator fields that B2 deliberately hides from the text model.
@@ -655,9 +740,22 @@ def main() -> None:
         ),
     )
     rows: list[dict[str, object]] = []
+    traces: list[dict[str, object]] = []
     for name, episodes, renderer in evaluations:
         scorer = TextScorer(model, renderer, args.max_bytes, device)
-        rows.extend(evaluate_split(episodes, capacities, name, args.seed, renderer, scorer, structured))
+        rows.extend(
+            evaluate_split(
+                episodes,
+                capacities,
+                name,
+                args.seed,
+                renderer,
+                scorer,
+                structured,
+                traces,
+                args.trace_episodes,
+            )
+        )
     summary = summarize(rows)
     metadata = {
         "seed": args.seed,
@@ -683,9 +781,15 @@ def main() -> None:
             "sample_rate": args.sample_rate,
         },
         "hard_negatives_per_episode": 14,
+        "tensorboard_dir": str(tensorboard_dir),
+        "trace_episodes_per_split": args.trace_episodes,
     }
     write_outputs(args.output, rows, summary, metadata, history)
+    write_eviction_artifacts(args.output, traces)
+    log_evaluation_to_tensorboard(writer, rows, summary, metadata, traces)
     torch.save({"model": model.state_dict(), "metadata": metadata}, args.output / "model.pt")
+    if writer is not None:
+        writer.close()
     print(json.dumps(summary["decision"], indent=2), flush=True)
 
 
