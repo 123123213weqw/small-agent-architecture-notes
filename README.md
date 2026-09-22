@@ -14,13 +14,15 @@
 
 ## 当前状态
 
-项目处于最小原型定义阶段。已经冻结效用巩固记忆 v1 的核心公式，但尚未锁定最终 1B 主干。当前状态：
+项目处于符号原型验证阶段。已经冻结效用巩固记忆 v1 的核心公式并完成第一轮 Phase 0A/0B，但尚未锁定最终 1B 主干。当前状态：
 
 1. 长期记忆采用不可变事件记录；
 2. 每次只有一个候选进入竞争，容量超限时只淘汰一条；
 3. 训练期用决策之后的反事实未来损失监督效用预测器；
 4. 推理期不访问未来，只执行效用预测、单次淘汰和标准 Cross-Attention 读取；
 5. Transformer、线性注意力或混合主干仍由小规模实验决定。
+
+第一轮符号实验中，Oracle−FIFO 成功率差距在同分布测试为 $0.895\pm0.012$，长度外推测试为 $0.948\pm0.014$；预测器分别恢复 93.6% 和 92.3% 的差距。这个结果只证明结构化符号环境中的可行性和可学习性，不代表自然语言 Reader 已经验证通过。
 
 第一版明确不加入显式衰减、年龄、occupancy、新奇度、冲突门、关联图、soft write 或记忆合并。
 
@@ -64,6 +66,7 @@ $$
 
 - [架构与横向比较方案](docs/architecture-comparison-plan.md)
 - [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
+- [Phase 0A/0B：符号验证方案](docs/phase0-ab-validation.md)
 - [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)
 - [决策记录](docs/decisions.md)
 
@@ -74,6 +77,20 @@ $$
 - 公式内的大小比较写 `\lt`、`\gt`，避免 `<`、`>` 被转义；
 - 公式里的花括号写 `\lbrace`、`\rbrace`，因为 `\{`、`\}` 的反斜杠会被 Markdown 吃掉；
 - 算子名写 `\mathrm{...}`，不要用 `\operatorname{...}`：GitHub 的宏白名单不含它，页面会显示红框 `The following macros are not allowed: operatorname`。
+
+## Phase 0A/0B 复现
+
+该实验不训练语言模型，用可审计的符号 Reader 分离验证“选择性保留是否存在收益”和“效用是否能从决策时信息预测”：
+
+```bash
+python3 -m pip install -r requirements-phase0.txt
+python3 -m unittest discover -s tests -v
+python3 experiments/phase0_ab.py --output results/phase0_ab
+```
+
+`Future Oracle` 只作为上界和标签生成器；`Predicted Utility` 的特征不包含未来记录或最终答案。
+
+已记录的首次运行结果见 [`results/phase0_ab/RESULTS.md`](results/phase0_ab/RESULTS.md)。
 
 ## 原则
 

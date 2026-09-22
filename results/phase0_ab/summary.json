@@ -1,0 +1,358 @@
+{
+  "metadata": {
+    "seeds": 10,
+    "train_episodes_per_seed": 600,
+    "test_episodes_per_split_per_seed": 240,
+    "train_lengths": [
+      32,
+      48,
+      64
+    ],
+    "id_lengths": [
+      48,
+      64
+    ],
+    "ood_lengths": [
+      96,
+      128
+    ],
+    "capacities": [
+      4,
+      8,
+      12
+    ],
+    "feature_names": [
+      "kind=fact",
+      "kind=state",
+      "kind=instruction",
+      "kind=intermediate",
+      "kind=subgoal",
+      "kind=edge",
+      "kind=log",
+      "age_fraction",
+      "position_fraction",
+      "is_new_candidate",
+      "goal_key_match",
+      "goal_value_match",
+      "goal_ref_match",
+      "same_key_count",
+      "newer_same_key",
+      "older_same_key",
+      "consumed",
+      "unresolved",
+      "edge_touches_goal",
+      "edge_component_connects_goals",
+      "capacity_pressure"
+    ]
+  },
+  "groups": {
+    "id/fifo": {
+      "success": {
+        "mean": 0.10458333333333333,
+        "std": 0.30607955667082776
+      },
+      "clause_accuracy": {
+        "mean": 0.10458333333333333,
+        "std": 0.30607955667082776
+      },
+      "required_recall": {
+        "mean": 0.15479166666666666,
+        "std": 0.32522470881976373
+      },
+      "eviction_accuracy": {
+        "mean": 0.9768603607041105,
+        "std": 0.01323340837597461
+      },
+      "eviction_regret": {
+        "mean": 0.019240066646316643,
+        "std": 0.007582289269651198
+      },
+      "stale_value_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "id/oracle": {
+      "success": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "clause_accuracy": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "required_recall": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "eviction_accuracy": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "eviction_regret": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "stale_value_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "id/predicted": {
+      "success": {
+        "mean": 0.9429166666666666,
+        "std": 0.2320501298176051
+      },
+      "clause_accuracy": {
+        "mean": 0.9429166666666666,
+        "std": 0.2320501298176051
+      },
+      "required_recall": {
+        "mean": 0.9429166666666666,
+        "std": 0.2320501298176051
+      },
+      "eviction_accuracy": {
+        "mean": 0.9988936237373738,
+        "std": 0.00455571239036215
+      },
+      "eviction_regret": {
+        "mean": 0.0011063762626262626,
+        "std": 0.004555712390362146
+      },
+      "stale_value_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "id/random": {
+      "success": {
+        "mean": 0.08333333333333333,
+        "std": 0.27644299748787377
+      },
+      "clause_accuracy": {
+        "mean": 0.09583333333333334,
+        "std": 0.28360680392091236
+      },
+      "required_recall": {
+        "mean": 0.14208333333333334,
+        "std": 0.30423547798772016
+      },
+      "eviction_accuracy": {
+        "mean": 0.977061768093018,
+        "std": 0.011971818210486157
+      },
+      "eviction_regret": {
+        "mean": 0.019368965525215522,
+        "std": 0.007055915675105207
+      },
+      "stale_value_rate": {
+        "mean": 0.015833333333333335,
+        "std": 0.12485645502551934
+      }
+    },
+    "ood_length/fifo": {
+      "success": {
+        "mean": 0.052083333333333336,
+        "std": 0.22224139894562348
+      },
+      "clause_accuracy": {
+        "mean": 0.052083333333333336,
+        "std": 0.22224139894562348
+      },
+      "required_recall": {
+        "mean": 0.07854166666666666,
+        "std": 0.24324547288816936
+      },
+      "eviction_accuracy": {
+        "mean": 0.9889195453287529,
+        "std": 0.0051429059183359304
+      },
+      "eviction_regret": {
+        "mean": 0.009363158557399139,
+        "std": 0.0026679502127069043
+      },
+      "stale_value_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "ood_length/oracle": {
+      "success": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "clause_accuracy": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "required_recall": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "eviction_accuracy": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "eviction_regret": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "stale_value_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "ood_length/predicted": {
+      "success": {
+        "mean": 0.9266666666666666,
+        "std": 0.26073718985431993
+      },
+      "clause_accuracy": {
+        "mean": 0.9266666666666666,
+        "std": 0.26073718985431993
+      },
+      "required_recall": {
+        "mean": 0.9266666666666666,
+        "std": 0.26073718985431993
+      },
+      "eviction_accuracy": {
+        "mean": 0.9993162692847125,
+        "std": 0.0024602052186421947
+      },
+      "eviction_regret": {
+        "mean": 0.0006837307152875175,
+        "std": 0.002460205218642189
+      },
+      "stale_value_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "ood_length/random": {
+      "success": {
+        "mean": 0.04375,
+        "std": 0.20458097762704183
+      },
+      "clause_accuracy": {
+        "mean": 0.045,
+        "std": 0.20583404283263904
+      },
+      "required_recall": {
+        "mean": 0.07125,
+        "std": 0.2290093659745019
+      },
+      "eviction_accuracy": {
+        "mean": 0.9888548359225289,
+        "std": 0.005007064068892769
+      },
+      "eviction_regret": {
+        "mean": 0.00944206473428556,
+        "std": 0.0025353131262401017
+      },
+      "stale_value_rate": {
+        "mean": 0.006666666666666667,
+        "std": 0.08139399628751544
+      }
+    }
+  },
+  "by_task": {
+    "id/delayed_query": {
+      "fifo": 0.0725,
+      "oracle": 1.0,
+      "predicted": 0.66,
+      "oracle_fifo_gap": 0.9275
+    },
+    "id/state_overwrite": {
+      "fifo": 0.4425,
+      "oracle": 1.0,
+      "predicted": 0.9975,
+      "oracle_fifo_gap": 0.5575
+    },
+    "id/long_instruction": {
+      "fifo": 0.0,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 1.0
+    },
+    "id/completed_intermediate": {
+      "fifo": 0.0575,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.9425
+    },
+    "id/unresolved_subgoal": {
+      "fifo": 0.01,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.99
+    },
+    "id/relation_chain": {
+      "fifo": 0.045,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.955
+    },
+    "ood_length/delayed_query": {
+      "fifo": 0.02,
+      "oracle": 1.0,
+      "predicted": 0.56,
+      "oracle_fifo_gap": 0.98
+    },
+    "ood_length/state_overwrite": {
+      "fifo": 0.2475,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.7525
+    },
+    "ood_length/long_instruction": {
+      "fifo": 0.0,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 1.0
+    },
+    "ood_length/completed_intermediate": {
+      "fifo": 0.035,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.965
+    },
+    "ood_length/unresolved_subgoal": {
+      "fifo": 0.0025,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.9975
+    },
+    "ood_length/relation_chain": {
+      "fifo": 0.0075,
+      "oracle": 1.0,
+      "predicted": 1.0,
+      "oracle_fifo_gap": 0.9925
+    }
+  },
+  "decision": {
+    "id": {
+      "fifo_success": 0.10458333333333333,
+      "oracle_success": 1.0,
+      "predicted_success": 0.9429166666666666,
+      "oracle_fifo_gap": 0.8954166666666666,
+      "oracle_fifo_gap_seed_std": 0.011528614427470645,
+      "predicted_gap_recovered": 0.9362494183341088,
+      "predicted_gap_recovered_seed_std": 0.01826558698376427,
+      "tasks_with_oracle_gap_ge_5pp": 6,
+      "phase_a_pass_10pp": true,
+      "phase_b_pass_50pct": true
+    },
+    "ood_length": {
+      "fifo_success": 0.052083333333333336,
+      "oracle_success": 1.0,
+      "predicted_success": 0.9266666666666666,
+      "oracle_fifo_gap": 0.9479166666666666,
+      "oracle_fifo_gap_seed_std": 0.013784328639777231,
+      "predicted_gap_recovered": 0.9226373626373626,
+      "predicted_gap_recovered_seed_std": 0.019133017236724406,
+      "tasks_with_oracle_gap_ge_5pp": 6,
+      "phase_a_pass_10pp": true,
+      "phase_b_pass_50pct": true
+    }
+  }
+}
