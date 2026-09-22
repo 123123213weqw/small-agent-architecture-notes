@@ -62,3 +62,10 @@
 6. The vocabulary size of the Chinese/English code Tokenizer;
 7. The Agent message format and tool Schema;
 8. The final training data mixture and token budget.
+
+## ADR-009: Phase 0A/0B adopts a symbolic Reader first
+
+- Status: The first round of experiments is complete, and both 0A and 0B pass; the conclusions are limited to a symbolic environment.
+- Decision: Before investing in language-model training, validate the Oracle–FIFO gap and utility learnability with six families of synthetic event streams, a fixed capacity and an auditable 0/1 subgoal loss.
+- Pass threshold: 0A requires an aggregate gap of at least 10 percentage points and a gap of 5 percentage points on at least four task families; 0B requires the length-extrapolation test to recover at least 50% of the Oracle–FIFO gap.
+- Limitation: This stage does not prove that natural-language event encoding is learnable, and does not represent a benefit on complete Agent tasks.

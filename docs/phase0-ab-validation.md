@@ -14,8 +14,7 @@
 每个 episode 是一串不可变事件记录。最终任务由一个或多个依赖集合组成；只有依赖集合中的记录全部保留，相关子目标才成功。符号损失为失败子目标比例：
 
 $$
-L(Y_t\mid\mathcal R_t)
-=
+L(Y_t\mid\mathcal R_t) =
 \frac{1}{K}\sum_{k=1}^{K}
 \mathbf 1[C_k\nsubseteq\mathcal R_t].
 $$
@@ -23,9 +22,8 @@ $$
 决策时对每条竞争记录执行一次 mask，得到：
 
 $$
-u_{t,i}
-=
-L(Y_t\mid\mathcal R_t\setminus\{m_i\})
+u_{t,i} =
+L(Y_t\mid\mathcal R_t\setminus\lbracem_i\rbrace)
 -L(Y_t\mid\mathcal R_t).
 $$
 
@@ -69,8 +67,7 @@ Phase 0A 通过需要同时满足：
 Phase 0B 使用恢复比例：
 
 $$
-\operatorname{RecoveredGap}
-=
+\mathrm{RecoveredGap} =
 \frac{S_{\mathrm{pred}}-S_{\mathrm{FIFO}}}
 {S_{\mathrm{oracle}}-S_{\mathrm{FIFO}}}.
 $$

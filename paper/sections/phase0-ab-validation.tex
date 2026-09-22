@@ -1,0 +1,133 @@
+\section{Phase 0A/0B: Symbolic Memory Selection Validation}
+
+\subsection{Purpose}
+
+Answer two questions separately before integrating a language model:
+
+\begin{itemize}
+  \item \textbf{0A feasibility}: under the same capacity, does Future Oracle reliably beat FIFO?
+  \item \textbf{0B learnability}: can a small utility predictor that reads only the information available at decision time recover part of the Oracle advantage?
+\end{itemize}
+
+This is not a conclusion about model capability. It only verifies whether the eviction problem exists and whether the current features contain a learnable signal.
+
+\subsection{Symbolic Reader}
+
+Each episode is a sequence of immutable event records. The final task consists of one or more dependency sets; the related subgoal succeeds only if all records in the dependency set are retained. The symbolic loss is the fraction of failed subgoals:
+
+\[
+L(Y_t\mid\mathcal R_t)
+=
+\frac{1}{K}\sum_{k=1}^{K}
+\mathbf 1[C_k\nsubseteq\mathcal R_t].
+\]
+
+At decision time, one mask is applied to each competing record, which gives:
+
+\[
+u_{t,i}
+=
+L(Y_t\mid\mathcal R_t\setminus\{m_i\})
+-L(Y_t\mid\mathcal R_t).
+\]
+
+Records that arrive in the future take part only in label computation and do not enter the predictor features. This implementation corresponds to counterfactual supervision for a single eviction, and it makes no claim to have derived the globally optimal policy of the whole episode.
+
+\subsection{Six Task Families}
+
+\begin{enumerate}
+  \item \texttt{delayed\_query}: an earlier fact is queried after interference; for half of them the concrete query key is not disclosed in advance, which measures the upper bound caused by an unpredictable future.
+  \item \texttt{state\_overwrite}: the same state is overwritten several times, and only the final version is valid.
+  \item \texttt{long\_instruction}: a long-horizon output constraint and the answer record must both be retained.
+  \item \texttt{completed\_intermediate}: intermediate results that have already been consumed should be evicted, while unfinished results should be retained.
+  \item \texttt{unresolved\_subgoal}: the subgoal and the subsequent evidence must be retained in combination.
+  \item \texttt{relation\_chain}: two edges jointly form the final relation, which checks a dependency that is not a single fact.
+\end{enumerate}
+
+The positions of the key records cover the early, middle and recent parts, so that FIFO is not artificially made a policy that is bound to lose.
+
+\subsection{Comparison Policies}
+
+\begin{itemize}
+  \item \texttt{Random}: random eviction;
+  \item \texttt{FIFO}: evict the record that entered earliest;
+  \item \texttt{Future Oracle}: evict the record with the lowest true counterfactual utility;
+  \item \texttt{Predicted Utility}: use a two-layer MLP to regress the counterfactual utility and evict the record with the lowest predicted value.
+\end{itemize}
+
+Training trajectories are collected from a mixture of FIFO, Random and Oracle, so that the predictor does not see only the states induced by a single policy. Positive-utility labels are oversampled to a limited extent, but the regression target is still the original counterfactual utility.
+
+\subsection{Data Splits}
+
+\begin{itemize}
+  \item Training lengths: 32, 48, 64;
+  \item In-distribution test lengths: 48, 64;
+  \item Length-extrapolation test lengths: 96, 128;
+  \item Long-term capacity: 4, 8, 12;
+  \item The random entities, values and event streams of the test episodes are completely separated from those of the training episodes.
+\end{itemize}
+
+\subsection{Pre-registered Criteria}
+
+Phase 0A passes only if both of the following hold:
+
+\begin{enumerate}
+  \item the Oracle$-$FIFO gap of the aggregate success rate is at least 0.10;
+  \item the gap is at least 0.05 on at least four task families.
+\end{enumerate}
+
+Phase 0B uses the recovered ratio:
+
+\[
+\operatorname{RecoveredGap}
+=
+\frac{S_{\mathrm{pred}}-S_{\mathrm{FIFO}}}
+{S_{\mathrm{oracle}}-S_{\mathrm{FIFO}}}.
+\]
+
+The first stage requires a recovered ratio of at least 50\% in the length-extrapolation test.
+
+\subsection{Metrics and Outputs}
+
+\begin{itemize}
+  \item episode success rate;
+  \item subgoal accuracy;
+  \item required-record recall;
+  \item eviction-choice accuracy;
+  \item single-step eviction regret;
+  \item stale-value residue rate;
+  \item the Oracle$-$FIFO gap of each task family;
+  \item the Oracle gap recovered by Predicted Utility.
+\end{itemize}
+
+Each run produces:
+
+\begin{itemize}
+  \item \texttt{RESULTS.md}: human-readable conclusions;
+  \item \texttt{summary.json}: aggregate results and experiment metadata;
+  \item \texttt{episode\_metrics.csv}: raw per-episode results, not committed to Git by default.
+\end{itemize}
+
+\subsection{Limitations}
+
+The symbolic experiment deliberately omits language understanding, event segmentation, representation learning, Reader error and training non-stationarity. The features also contain already structured \texttt{consumed}, \texttt{unresolved} and goal-matching information, so passing 0B only shows that the utility signal is learnable in idealized records; it cannot prove that a language model can automatically extract these signals from raw tokens.
+
+The next stage must replace the symbolic Reader with a 20M--50M Reader and add a token-input control without hand-crafted structure fields.
+
+\subsection{First-Round Results}
+
+The run uses 10 random seeds on a WZU V100 server; each seed contains 600 training episodes, as well as 240 in-distribution and 240 length-extrapolation test episodes.
+
+\begin{table}[htbp]\centering
+\begin{tabular}{lrrrrr}\toprule
+Split & FIFO & Oracle & Predicted & Oracle$-$FIFO & Recovered ratio\\
+\midrule
+In-distribution & 0.105 & 1.000 & 0.943 & $0.895\pm0.012$ & $93.6\%\pm1.8\%$\\
+Length extrapolation & 0.052 & 1.000 & 0.927 & $0.948\pm0.014$ & $92.3\%\pm1.9\%$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Phase 0A and 0B both reach the pre-registered thresholds. The hardest subtask is \texttt{delayed\_query} without an advance disclosure of the query key: the predicted policy reaches 0.660 and 0.560 on the in-distribution and length-extrapolation tests respectively, while Oracle reaches 1.000. This matches the expectation, because part of the future demand is not identifiable at decision time.
+
+The complete aggregate results are in \href{../../results/phase0_ab/RESULTS.md}{\texttt{../../results/phase0\_ab/RESULTS.md}}, and the machine-readable results are in \href{../../results/phase0_ab/summary.json}{\texttt{../../results/phase0\_ab/summary.json}}.

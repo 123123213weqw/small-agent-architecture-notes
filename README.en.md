@@ -14,13 +14,15 @@ Current goals focus on:
 
 ## Current Status
 
-The project is at the minimal-prototype definition stage. The core formulas of Utility Consolidation Memory v1 are frozen, but the final 1B backbone is not yet locked. Current status:
+The project is at the symbolic-prototype validation stage. The core formulas of Utility Consolidation Memory v1 are frozen and the first Phase 0A/0B round is complete, but the final 1B backbone is not yet locked. Current status:
 
 1. long-term memory uses immutable event records;
 2. only one candidate enters the competition at a time, and only one record is evicted when capacity is exceeded;
 3. during training, the utility predictor is supervised with the counterfactual future loss after the decision;
 4. at inference time the future is not accessed; only utility prediction, single eviction, and standard Cross-Attention reads are performed;
 5. whether the backbone is a Transformer, linear attention, or a hybrid model is still determined by small-scale experiments.
+
+In the first round of symbolic experiments, the Oracle–FIFO success-rate gap is $0.895\pm0.012$ in the in-distribution test and $0.948\pm0.014$ in the length-extrapolation test; the predictor recovers 93.6% and 92.3% of the gap respectively. This result only proves feasibility and learnability in a structured symbolic environment, and does not mean that a natural-language Reader has been validated.
 
 The first version deliberately adds no explicit decay, age, occupancy, novelty, conflict gate, association graph, soft write, or memory merging.
 
@@ -64,6 +66,7 @@ The last formula is executed only when $|\mathcal R_t|\gt S$.
 
 - [Architecture and Comparison Plan](docs/en/architecture-comparison-plan.md)
 - [Utility Consolidation Memory v1: A Frozen Minimal Prototype](docs/en/utility-consolidation-memory-v1.md)
+- [Phase 0A/0B: Symbolic Validation Plan](docs/en/phase0-ab-validation.md)
 - [Early Persistent Episodic Memory Derivation (Superseded by the Simplified Version)](docs/en/candidate-persistent-episodic-memory.md)
 - [Decision Records](docs/en/decisions.md)
 
@@ -74,6 +77,20 @@ The last formula is executed only when $|\mathcal R_t|\gt S$.
 - write magnitude comparisons inside formulas as `\lt` and `\gt`, to avoid `<` and `>` being escaped;
 - write curly braces inside formulas as `\lbrace` and `\rbrace`, because the backslashes of `\{` and `\}` are eaten by Markdown;
 - write operator names as `\mathrm{...}`, not `\operatorname{...}`: the GitHub macro whitelist does not contain it, and the page shows a red box reading `The following macros are not allowed: operatorname`.
+
+## Phase 0A/0B Reproduction
+
+This experiment does not train a language model; it uses an auditable symbolic Reader to separately validate “whether selective retention has any benefit” and “whether utility can be predicted from decision-time information”:
+
+```bash
+python3 -m pip install -r requirements-phase0.txt
+python3 -m unittest discover -s tests -v
+python3 experiments/phase0_ab.py --output results/phase0_ab
+```
+
+`Future Oracle` only serves as an upper bound and a label generator; the features of `Predicted Utility` contain no future records or final answer.
+
+The recorded first-run results are in [`results/phase0_ab/RESULTS.md`](results/phase0_ab/RESULTS.md).
 
 ## Principles
 
