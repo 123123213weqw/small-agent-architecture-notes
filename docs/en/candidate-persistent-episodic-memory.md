@@ -1,0 +1,84 @@
+# Early Persistent Episodic Memory Derivation (Archived)
+
+> Status: Superseded. This document only records the abandoned design path and no longer serves as an implementation specification. The current specification is [Utility Consolidation Memory v1](utility-consolidation-memory-v1.md).
+
+## 1. Early proposal
+
+The early proposal attempted to add all of the following at the same time:
+
+- learned event boundaries;
+- novelty and surprise;
+- soft slot routing;
+- salience, age and occupancy;
+- exponential decay;
+- conflict detection;
+- an event association graph;
+- two-stage lookback over raw segments.
+
+The proposal was abandoned, not because every component is necessarily ineffective, but because there are too many components, training attribution is difficult, and several formulas have coupled failure modes.
+
+## 2. Confirmed main problems
+
+### 2.1 Slot collapse of soft write
+
+If all slots are initialized identically, then:
+
+$$
+p_i^{\mathrm{match}}=p_i^{\mathrm{replace}}=\frac1S,
+$$
+
+and therefore:
+
+$$
+\omega_i=\frac{g_e^w}{S}.
+$$
+
+All slots receive the same update, and the equal-slot state becomes an invariant subspace of the update equation. After $E$ uniform writes, occupancy may show:
+
+$$
+o_i^{(E)}=1-\left(1-\frac1S\right)^E,
+$$
+
+but the contents of all slots may still be exactly identical. Therefore occupancy cannot prove that the system has formed distinct memories.
+
+### 2.2 Causal limit of judging importance immediately
+
+Two tasks can have the same history before an event appears, but in the future one needs that event and the other does not. Any function that depends only on the current history cannot know the unique future and can only predict the expected utility under the training distribution.
+
+### 2.3 Past use does not equal future retention value
+
+Frequent use of an event within the waiting period does not mean that it still has value after the decision; no use within the waiting period does not mean that it will not be needed at the end of the task. Therefore training labels must evaluate the future after the consolidation decision, not the waiting interval after the event appears.
+
+### 2.4 Over-engineering
+
+The early proposal designed writing, forgetting, conflict, association, replacement and lookback as separate independent modules, which causes:
+
+- too many hyperparameters and initialization rules;
+- an unclear joint optimization objective;
+- difficulty in determining the source of the gains;
+- small-model capacity being consumed by the controllers;
+- training and inference behavior being prone to inconsistency.
+
+## 3. Ideas retained by the current version
+
+The current v1 retains only the following research motivations:
+
+1. the long-term state must be bounded;
+2. memory records must be independently identifiable and removable;
+3. memory value should be defined by the future task loss after the decision;
+4. inference-time prediction of the expected removal cost;
+5. any added complexity must be proposed only after the minimal prototype fails.
+
+## 4. Current replacement
+
+$$
+\boxed{
+\text{Future removal cost}
+\longrightarrow
+\text{Predicted expected removal cost}
+\longrightarrow
+\text{Budgeted single eviction}
+}
+$$
+
+See [Utility Consolidation Memory v1](utility-consolidation-memory-v1.md) for details.

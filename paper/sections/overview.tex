@@ -1,0 +1,103 @@
+\section{Overview}
+
+Public research notes on a small Agent model of roughly 1B parameters.
+
+Current goals focus on:
+
+\begin{itemize}
+  \item tool calling and short-horizon task planning;
+  \item simple Python, Shell, and code repair;
+  \item basic mathematics and tool-assisted computation;
+  \item state retention for long tasks under a fixed state budget;
+  \item learning a memory eviction policy from the post-decision counterfactual future loss;
+  \item training efficiency, inference latency, and state caching on small models;
+  \item reproducible side-by-side comparison of new architectures with public small models.
+\end{itemize}
+
+\subsection{Current Status}
+
+The project is at the minimal-prototype definition stage. The core formulas of Utility Consolidation Memory v1 are frozen, but the final 1B backbone is not yet locked. Current status:
+
+\begin{enumerate}
+  \item long-term memory uses immutable event records;
+  \item only one candidate enters the competition at a time, and only one record is evicted when capacity is exceeded;
+  \item during training, the utility predictor is supervised with the counterfactual future loss after the decision;
+  \item at inference time the future is not accessed; only utility prediction, single eviction, and standard Cross-Attention reads are performed;
+  \item whether the backbone is a Transformer, linear attention, or a hybrid model is still determined by small-scale experiments.
+\end{enumerate}
+
+The first version deliberately adds no explicit decay, age, occupancy, novelty, conflict gate, association graph, soft write, or memory merging.
+
+\subsection{Frozen Core}
+
+\[
+\mathcal R_t=M_t\cup\{c_t\}
+\]
+
+\[
+u_{t,i} =
+\mathcal L_{\bar\theta,F}
+\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right) -
+\mathcal L_{\bar\theta,F}
+\left(Y_t\mid B_t,\mathcal R_t\right)
+\]
+
+\[
+\hat u_{t,i}=f_\phi(m_i,g_t,B_t,\mathcal R_t)
+\]
+
+\[
+M_{t+1} =
+\mathcal R_t\setminus
+\left\{ \arg\min_i\hat u_{t,i}\right\}
+\]
+
+The last formula is executed only when $|\mathcal R_t| > S$.
+
+\subsection{Comparison Models}
+
+\begin{itemize}
+  \item TinyLlama-1.1B: reference for a standard small GQA architecture;
+  \item OLMo-1B: reference for an open training process and intermediate checkpoints;
+  \item RWKV-7: reference for fixed continuous state and the generalized Delta Rule;
+  \item Kimi Linear/KDA: reference for efficient linear attention and continuous matrix state;
+  \item Hymba-1.5B: reference for a public small hybrid architecture;
+  \item Qwen2.5-Coder-1.5B: reference for code ability;
+  \item SmolLM2-1.7B: reference for data engineering, mathematics, and instruction ability on small models.
+\end{itemize}
+
+\subsection{Documents}
+
+\begin{itemize}
+  \item \href{docs/en/architecture-comparison-plan.md}{Architecture and Comparison Plan}
+  \item \href{docs/en/utility-consolidation-memory-v1.md}{Utility Consolidation Memory v1: A Frozen Minimal Prototype}
+  \item \href{docs/en/candidate-persistent-episodic-memory.md}{Early Persistent Episodic Memory Derivation (Superseded by the Simplified Version)}
+  \item \href{docs/en/decisions.md}{Decision Records}
+\end{itemize}
+
+\subsection{Formula Writing Conventions}
+
+\begin{itemize}
+  \item inline formulas use \texttt{\$...\$}, and display formulas are surrounded by separate \texttt{\$\$} lines; \texttt{\textbackslash{}[...\textbackslash{}]} and \texttt{\textbackslash{}(...\textbackslash{})} do not render on GitHub;
+  \item do not let a display formula contain a line that has only \texttt{=} or \texttt{-}, or Markdown parses it as a heading;
+  \item write magnitude comparisons inside formulas as \texttt{\textbackslash{}lt} and \texttt{\textbackslash{}gt}, to avoid \texttt{<} and \texttt{>} being escaped;
+  \item write curly braces inside formulas as \texttt{\textbackslash{}lbrace} and \texttt{\textbackslash{}rbrace}, because the backslashes of \texttt{\textbackslash{}\{} and \texttt{\textbackslash{}\}} are eaten by Markdown;
+  \item write operator names as \texttt{\textbackslash{}mathrm\{...\}}, not \texttt{\textbackslash{}operatorname\{...\}}: the GitHub macro whitelist does not contain it, and the page shows a red box reading \texttt{The following macros are not allowed: operatorname}.
+\end{itemize}
+
+\subsection{Principles}
+
+\begin{itemize}
+  \item a complete traditional 1B baseline is ultimately not retrained;
+  \item public models are used for the final side-by-side comparison;
+  \item architectural attribution is completed in stages, from the no-language-model case, through 20M--50M and 100M--150M, to 300M--400M;
+  \item perplexity is not compared side by side directly across different Tokenizers;
+  \item quality, Agent success rate, memory selection regret, code/mathematical ability, and efficiency are reported together;
+  \item the state budget must account for local KV, the short-term buffer, long-term records, and metadata at the same time;
+  \item the direction is stopped when Future Oracle does not exceed a same-budget FIFO;
+  \item architectural conclusions must be verified by experiments matched on parameters, data, and training tokens.
+\end{itemize}
+
+\subsection{License}
+
+Apache-2.0

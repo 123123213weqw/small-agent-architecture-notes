@@ -86,6 +86,30 @@ $$
 - Future Oracle 不超过同预算 FIFO 时停止该方向；
 - 架构结论必须经过参数、数据和训练 token 匹配的实验验证。
 
+## 仓库结构
+
+中文原文是主文档，英文原稿和 LaTeX 原稿与它同步维护：
+
+```text
+README.md                 中文原文
+README.en.md              英文原稿
+docs/*.md                 中文原文分册
+docs/en/*.md              英文原稿分册
+paper/main.tex            LaTeX 原稿（英文，tectonic 编译）
+paper/preamble.tex        LaTeX 导言区与宏定义
+paper/sections/*.tex      LaTeX 原稿分节
+paper/check-section.sh    单独编译某一节，便于早期发现错误
+```
+
+构建 PDF：
+
+```bash
+cd paper
+tectonic -X compile main.tex
+```
+
+三份文本内容一致：公式、标题层级、列表、表格和链接一一对应。Markdown 使用 GitHub 能渲染的写法（`$$`、`\mathrm`、`\lbrace`），LaTeX 原稿使用规范 LaTeX（`\[...\]`、`\operatorname`、`\{...\}`）。
+
 ## License
 
 Apache-2.0

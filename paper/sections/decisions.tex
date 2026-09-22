@@ -1,0 +1,82 @@
+\section{Decision Records}
+
+\subsection*{ADR-001: Project positioning}
+
+\begin{itemize}
+  \item Status: Accepted
+  \item Decision: Train a small Agent model with about 1B parameters, mainly covering tool calling, simple code, basic mathematics and long-task state retention under a fixed state budget.
+  \item Note: A general chat model that covers all knowledge is not the primary goal.
+\end{itemize}
+
+\subsection*{ADR-002: Public comparison models}
+
+\begin{itemize}
+  \item Status: Accepted
+  \item Decision: Include TinyLlama-1.1B, OLMo-1B, RWKV-7, Kimi Linear/KDA, Hymba-1.5B, Qwen2.5-Coder-1.5B and SmolLM2-1.7B as architecture or capability references.
+  \item Note: Different models take on different reference roles; they are not treated as strict architectural experiments with the same data and the same training recipe.
+\end{itemize}
+
+\subsection*{ADR-003: Do not train a complete conventional 1B baseline}
+
+\begin{itemize}
+  \item Status: Accepted
+  \item Decision: Do not spend a complete 1B pretraining budget on a conventional Transformer alone.
+  \item Note: The final cross-model capability is provided by public models; architectural attribution is done through small-scale controlled experiments.
+\end{itemize}
+
+\subsection*{ADR-004: The final architecture stays open}
+
+\begin{itemize}
+  \item Status: Revised
+  \item Decision: Utility Consolidation Memory v1 is frozen as the minimal experimental prototype; the complete 1B backbone stays open, and Attention, linear state, residual, depth and width are not locked.
+  \item Note: Freezing the memory management formulas does not mean that the final architecture is determined. The backbone is decided by controlled experiments in stages.
+\end{itemize}
+
+\subsection*{ADR-005: Freeze the core formulas of Utility Consolidation Memory v1}
+
+\begin{itemize}
+  \item Status: Accepted as a minimal experimental prototype; this does not mean that the final 1B architecture is determined.
+  \item Decision: Long-term memory uses immutable event records, a fixed delay, single-candidate entry, counterfactual future utility supervision and single lowest-utility eviction.
+  \item Core: Each time, let $\mathcal R_t=M_t\cup\{c_t\}$; when the capacity is exceeded, delete $\arg\min_i\hat u_{t,i}$.
+  \item Training: Utility labels only evaluate the future interval after the decision; Hard eviction does not require backpropagation through the discrete choice.
+  \item Explicitly excluded: The first version does not add explicit decay, age, occupancy, novelty, a conflict gate, an association graph, soft write or memory merging.
+  \item Specification: \href{utility-consolidation-memory-v1.md}{Utility Consolidation Memory v1}.
+\end{itemize}
+
+\subsection*{ADR-006: Single candidate, single eviction and immutable records}
+
+\begin{itemize}
+  \item Status: Accepted
+  \item Decision: Each consolidation step adds only one candidate; when long-term memory is full, at most one record is evicted; multiple candidates are processed one by one in a deterministic temporal order and rescored.
+  \item Decision: Records have a stable event ID, slot ID and temporal information; in the first version a record is kept unchanged when selected and removed as a whole when evicted, with no interpolation, merging or rewriting.
+  \item Note: This restriction makes the counterfactual mask change the visibility of only one record, and makes the exact utility correspond to the future loss of the current single eviction.
+\end{itemize}
+
+\subsection*{ADR-007: Decoupling of training and inference}
+
+\begin{itemize}
+  \item Status: Accepted
+  \item Training: Use a fixed or EMA Reader/event encoder to generate counterfactual utility labels for the future interval after the decision, and the Utility Predictor learns by direct regression; no claim is made that gradients pass through Hard eviction to train the whole system end to end.
+  \item Inference: Do not access the future, do not run counterfactual branches or backpropagation; only predict utility, perform a single eviction and read the retained records through standard Cross-Attention.
+\end{itemize}
+
+\subsection*{ADR-008: Staged stopping conditions}
+
+\begin{itemize}
+  \item Status: Accepted
+  \item Decision: Stop extending this memory direction when Future Oracle cannot exceed FIFO under the same total state budget.
+  \item Decision: Only when the predicted-utility policy can approach Oracle and exceeds FIFO and the continuous-state baseline in controlled experiments does the project scale to 300M--400M and finally to about 1B.
+\end{itemize}
+
+\subsection{Open decisions}
+
+\begin{enumerate}
+  \item Whether the parameter budget is matched primarily by total parameters, non-Embedding parameters or training FLOPs;
+  \item Whether the backbone uses a Local Transformer, linear attention or a hybrid structure;
+  \item The local window $W$, the long-term capacity $S$, the waiting period $D$ and the supervision horizon $F$;
+  \item The granularity and encoding dimension of event records, and whether raw token pointers are kept;
+  \item The structure of the Utility Predictor, the label sampling rate and the teacher update schedule;
+  \item The vocabulary size of the Chinese/English code Tokenizer;
+  \item The Agent message format and tool Schema;
+  \item The final training data mixture and token budget.
+\end{enumerate}

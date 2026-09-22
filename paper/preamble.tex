@@ -1,0 +1,53 @@
+% Shared preamble for the LaTeX manuscript of the Small Agent Architecture Notes.
+% Loaded by paper/main.tex and by the standalone wrappers in paper/standalone/.
+% Compile with: tectonic -X compile main.tex   (run inside paper/)
+
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+% ---- operators -------------------------------------------------------------
+% Sections use \operatorname{...} directly, which needs no declaration.
+% These shortcuts exist for the frequently repeated names.
+\DeclareMathOperator{\softmaxop}{softmax}
+\DeclareMathOperator{\stopgradop}{stopgrad}
+\DeclareMathOperator{\maskop}{mask}
+
+% ---- code blocks -----------------------------------------------------------
+% Usage: \begin{lstlisting}[style=notes] ... \end{lstlisting}
+\lstdefinestyle{notes}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  framesep=4pt,
+  xleftmargin=6pt,
+  xrightmargin=6pt,
+  showstringspaces=false,
+  upquote=true,
+}
+
+% ---- tables ----------------------------------------------------------------
+\renewcommand{\arraystretch}{1.15}
+\captionsetup{font=small,labelfont=bf}
+
+% ---- notes-style blockquote ------------------------------------------------
+% Markdown "> ..." callouts are set as a small indented quotation.
+\newenvironment{notesquote}
+  {\begin{quote}\small}
+  {\end{quote}}

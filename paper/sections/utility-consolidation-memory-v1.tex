@@ -1,0 +1,356 @@
+\section{Utility Consolidation Memory v1: The Frozen Minimal Prototype}
+
+\begin{notesquote}
+Version: v1.0
+
+Status: the core formulas are frozen and implementation is allowed; the concrete dimensions and the training schedule are still to be determined by small-scale experiments.
+
+Goal: under a fixed state budget, learn which single long-term record should be deleted so that the future damage after the decision is minimal.
+
+Scope: this document freezes the memory management mechanism, not the full 1B backbone configuration.
+\end{notesquote}
+
+\subsection{Design Principles}
+
+The first version keeps only the following mechanisms:
+
+\begin{enumerate}
+  \item the most recent events first enter a fixed-delay buffer;
+  \item only one candidate at a time competes for admission to long-term memory;
+  \item during training, the counterfactual future loss after the decision is used to generate utility labels;
+  \item at inference time, the utility predictor assigns the scores;
+  \item when long-term memory is full, only one record is evicted;
+  \item records stay independent and immutable; they are neither merged nor interpolated;
+  \item the model reads long-term memory through standard Cross-Attention.
+\end{enumerate}
+
+The first version does not use explicit age, occupancy, novelty, surprise, exponential decay, a conflict gate, an association graph, soft write, or differentiable Top-K.
+
+\subsection{Notation and Timeline}
+
+\begin{itemize}
+  \item $M_t$: the set of long-term records before decision time $t$;
+  \item $S$: the long-term memory capacity;
+  \item $c_t$: the single candidate that enters the consolidation decision after a fixed waiting period $D$;
+  \item $B_t$: the recent context that has already been observed at decision time and still sits in the short-term buffer;
+  \item $g_t$: the representation of the current task goal;
+  \item $Y_t=x_{t+1:t+F}$: the training evaluation interval of length $F$ after the decision;
+  \item $m_i$: the immutable event record with a stable event ID, slot ID, and time information.
+\end{itemize}
+
+Each candidate takes part in consolidation at the $D$-th scheduling point after its event occurs. The predictor may read only the information that has already been observed at decision time; $Y_t$ is used only during training to construct supervision labels.
+
+\subsection{Frozen Core Formulas}
+
+\subsubsection{Candidate Admission}
+
+\[
+\boxed{
+\mathcal R_t=M_t\cup\{ c_t\}
+}
+\]
+
+and:
+
+\[
+|\mathcal R_t|\le S+1.
+\]
+
+If several candidates are produced at the same scheduling point, they must be processed one by one in a deterministic temporal order, and the scores for the next decision are recomputed after every decision.
+
+\subsubsection{Training-Time Counterfactual Future Utility}
+
+Using a label-generating model $\bar\theta$ that is fixed or updated with a slow EMA:
+
+\[
+\boxed{
+u_{t,i} =
+\mathcal L_{\bar\theta,F}
+\left(
+Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)
+\right) -
+\mathcal L_{\bar\theta,F}
+\left(
+Y_t\mid B_t,\mathcal R_t
+\right)
+}
+\]
+
+Here $\operatorname{mask}_i$ changes only the visibility of record $m_i$ and does not reorder the positions of the other records. The interpretation is as follows:
+
+\begin{itemize}
+  \item $u_{t,i}> 0$: deleting $m_i$ increases the future loss, so the record should preferentially be kept;
+  \item $u_{t,i}\approx0$: deleting it has essentially no effect;
+  \item $u_{t,i}< 0$: deleting it actually reduces the future loss, so it should preferentially be evicted.
+\end{itemize}
+
+The training loss may first use the future token loss or the supervised answer loss:
+
+\[
+\mathcal L_{\bar\theta,F} =
+\sum_{\tau=1}^{F}\ell_{t+\tau}.
+\]
+
+The first batch of experiments sets $\gamma=1$ and does not assume that distant information should be discounted over time.
+
+\subsubsection{Utility Prediction}
+
+\[
+\boxed{
+\hat u_{t,i} =
+f_\phi
+\left(
+m_i,g_t,B_t,\mathcal R_t
+\right)
+}
+\]
+
+The predictor is trained by direct regression supervision:
+
+\[
+\boxed{
+\mathcal L_{\operatorname{utility}} =
+\sum_i
+\left(
+\hat u_{t,i}
+-\operatorname{stopgrad}(u_{t,i})
+\right)^2
+}
+\]
+
+Under squared error, the population-optimal prediction is the conditional mean:
+
+\[
+f^*(m_i,I_t) =
+\mathbb E[u_{t,i}\mid m_i,I_t],
+\qquad
+I_t=(g_t,B_t,\mathcal R_t).
+\]
+
+Therefore the job of the predictor is not to foresee the single future accurately, but to estimate the expected future loss that deleting each record causes.
+
+\subsubsection{Single Eviction}
+
+If:
+
+\[
+|\mathcal R_t|\le S,
+\]
+
+then:
+
+\[
+M_{t+1}=\mathcal R_t.
+\]
+
+Otherwise:
+
+\[
+\boxed{
+M_{t+1} =
+\mathcal R_t
+\setminus
+\left\{ 
+\arg\min_i\hat u_{t,i}
+\right\}
+}
+\]
+
+Under exact utility:
+
+\[
+\arg\min_i u_{t,i} =
+\arg\min_i
+\mathcal L_{\bar\theta,F}
+\left(
+Y_t\mid B_t,
+\mathcal R_t\setminus\{ m_i\}
+\right),
+\]
+
+because the full-set loss is identical for all candidates. This conclusion guarantees optimality only for the current single eviction; consecutive evictions remain a greedy process that has to be rescored.
+
+\subsection{Standard Readout Interface}
+
+Long-term memory enters the backbone through standard Cross-Attention:
+
+\[
+Q=HW_Q,\qquad K=M_tW_K,\qquad V=M_tW_V,
+\]
+
+\[
+\boxed{
+H' =
+H+
+\operatorname{softmax}
+\left(
+\frac{QK^\top}{\sqrt{d_m}}
+\right)
+VW_O
+}
+\]
+
+A candidate produced after a chunk is completed can influence only later tokens; it cannot be written back to recompute earlier tokens within the current chunk.
+
+\subsection{Training and Inference}
+
+\subsubsection{Training}
+
+Training additionally performs counterfactual label generation:
+
+\begin{enumerate}
+  \item the Reader is first trained to be able to use memory;
+  \item the Reader/event encoder is frozen or used with EMA as $\bar\theta$;
+  \item the full branch and the masked branch are run on the same competing set;
+  \item $u_{t,i}$ is generated;
+  \item $\mathcal L_{\operatorname{utility}}$ is used to train $f_\phi$;
+  \item the Reader continues to be trained by the language-model or task loss.
+\end{enumerate}
+
+Hard eviction does not take part in ordinary backpropagation. The system is not trained end-to-end differentiably through discrete choices; the utility predictor relies on direct counterfactual supervision.
+
+If $|\mathcal R_t|=S+1$, computing all labels exactly requires one full-set evaluation and $S+1$ masked evaluations. Early in training, the following must be compared:
+
+\begin{itemize}
+  \item the full set of labels;
+  \item randomly sampling a few records each time;
+  \item an offline label cache;
+  \item periodically refreshing the labels.
+\end{itemize}
+
+\subsubsection{Inference}
+
+The inference stage does not access the future interval and does not compute counterfactual branches. Whenever a candidate matures, only the following is performed:
+
+\begin{enumerate}
+  \item the records in $\mathcal R_t$ are given the predicted values $\hat u_{t,i}$;
+  \item if the capacity is exceeded, the single record with the lowest predicted utility is deleted;
+  \item subsequent tokens read the updated $M_{t+1}$ through Cross-Attention.
+\end{enumerate}
+
+\subsection{Hypothesized Advantages over a Conventional Transformer}
+
+\subsubsection{State Size}
+
+The KV state of a full-context Transformer grows with the total history length $T$:
+
+\[
+O(Td).
+\]
+
+This architecture uses a local window $W$ and a long-term capacity $S$:
+
+\[
+O((W+S)d),
+\]
+
+which is independent of the total task length when $W,S$ are fixed.
+
+\subsubsection{Selective Retention beyond the Local Window}
+
+A sliding-window Transformer evicts by time:
+
+\[
+C_t=x_{t-W+1:t}.
+\]
+
+This architecture evicts by the predicted future deletion cost, so it can keep very old records that are still valuable and discard newer records that are useless.
+
+\subsubsection{Explicit Revision}
+
+An ordinary KV cache appends history but does not directly delete states that have gone stale. This architecture allows an old record to be explicitly evicted through utility competition when a new candidate arrives. This advantage is an inductive bias to be validated, not a conclusion that a Transformer is incapable of expressing it.
+
+\subsubsection{Costs and Disadvantages}
+
+\begin{itemize}
+  \item while the history still fits in the full context, Full Attention usually has more complete per-token evidence;
+  \item once an eviction is wrong and the original text cannot be recovered, the information is lost permanently;
+  \item counterfactual labels make training significantly more expensive;
+  \item memory decisions introduce a sequential dependency across chunks, so training parallelism is weaker than in an ordinary Transformer.
+\end{itemize}
+
+\subsection{Hypothesized Advantages over Linear Attention or Recurrent State Models}
+
+Methods such as KDA and RWKV continuously compress history into a fixed matrix or recurrent state. Their main advantages are a fixed state and efficient per-token inference. This architecture does not try to beat them on raw throughput; instead, it is hypothesized to have an advantage in the following situations:
+
+\begin{enumerate}
+  \item important information is sparsely distributed over a very long task trajectory;
+  \item historical events need to keep an independent identity;
+  \item a single event needs to be deleted, inspected, or ablated on its own;
+  \item old and new states overwrite each other frequently, and a continuous state is prone to interference;
+  \item the future use can be predicted from the goal and the recent context.
+\end{enumerate}
+
+Linear attention usually has a lower and smoother inference cost; this architecture reads $S$ records per token, at an approximate cost of:
+
+\[
+O(Sd_m),
+\]
+
+candidate consolidation additionally requires extra scoring. If every piece of historical information is important, if the future use is highly unpredictable, or if the task consists mainly of dense token dependencies, linear attention or Full Attention may be more suitable.
+
+\subsection{Complexity Summary}
+
+\begin{table}[htbp]\centering
+\begin{tabular}{lrrr}\toprule
+Item & Full Attention & Linear/recurrent attention & This architecture \\
+\midrule
+Total history state & $O(Td)$ & Fixed & $O((W+S)d)$ \\
+Per-token long-term readout & $O(Td)$ & Approximately fixed & $O(Sd_m)$ \\
+History individually addressable & Yes & Usually no & Yes, limited to retained records \\
+Explicit single-record eviction & KV usually does not do it & Difficult & Core operation \\
+Training parallelism & Strong & Strong or scannable & Weaker \\
+Extra training cost & Low & Medium & High, from counterfactual labels \\
+Main failure mode & KV growth, long-context interference & State-compression interference & Wrong evictions, label cost \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{First Batch of Experiments}
+
+Fix $S=32$, use fixed-size immutable event records, and process one candidate at a time. Compare:
+
+\begin{enumerate}
+  \item FIFO: the same total state budget;
+  \item random eviction;
+  \item predicted-utility eviction;
+  \item Oracle single eviction with post-decision future information;
+  \item a Full Attention or sufficiently long-context upper bound;
+  \item a linear/recurrent state baseline.
+\end{enumerate}
+
+The total state budget of the short-term buffer and of the long-term records must be reported together. The main metrics are:
+
+\begin{itemize}
+  \item long-range recall;
+  \item the stale-value misuse rate after several state overwrites;
+  \item the success rate as the task length grows;
+  \item selection regret;
+  \item training FLOPs;
+  \item inference latency, throughput, and peak GPU memory.
+\end{itemize}
+
+Diagnostic rules:
+
+\begin{itemize}
+  \item the Oracle brings no gain either: first check the record representation, the Reader, or the definition of the future loss;
+  \item the Oracle brings a gain but the prediction policy does not: first check the utility predictor and the training distribution;
+  \item the prediction policy is effective but too expensive: then study label sampling, distillation, and the update frequency.
+\end{itemize}
+
+\subsection{Current Research Claim}
+
+The first version does not claim to be broadly superior to a Transformer or to linear attention. The claim to be validated is:
+
+\begin{notesquote}
+Under a fixed state budget, on long tasks where critical events are sparse and the state is overwritten several times, a single-eviction policy trained with the post-decision counterfactual future loss retains future-useful information more reliably than time-based eviction and continuous state compression do.
+\end{notesquote}
+
+Related references:
+
+\begin{itemize}
+  \item \href{https://arxiv.org/abs/2510.26692}{Kimi Linear / KDA}
+  \item \href{https://arxiv.org/abs/2503.14456}{RWKV-7}
+  \item \href{https://arxiv.org/abs/2506.15841}{MEM1}
+  \item \href{https://arxiv.org/abs/2605.21768}{Memory-R2}
+\end{itemize}

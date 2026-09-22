@@ -1,0 +1,25 @@
+% Small Agent Architecture Notes -- LaTeX manuscript.
+% Build: tectonic -X compile main.tex   (run inside paper/)
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+
+\title{Small Agent Architecture Notes\\[0.4em]
+  \large Architecture and Comparison Plan for a $\sim$1B-Parameter Agent Model}
+\author{Yue Wang}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\clearpage
+
+\input{sections/overview}
+\input{sections/architecture-comparison-plan}
+\input{sections/utility-consolidation-memory-v1}
+
+\appendix
+\input{sections/candidate-persistent-episodic-memory}
+\input{sections/decisions}
+
+\end{document}

@@ -1,0 +1,453 @@
+\section{1B Agent Model Architecture and Comparison Plan}
+
+\begin{notesquote}
+Version: v0.3
+
+Status: the core formulas of Utility Consolidation Memory v1 are frozen; the full 1B backbone is not yet frozen.
+
+Goal: train from scratch a small Agent model of about 1B parameters, targeting tool calling, simple code, basic mathematics, and long-task state retention.
+\end{notesquote}
+
+\subsection{Project Goals}
+
+The model is positioned as a small Agent controller rather than a general chat model that covers all knowledge. Its core capabilities include:
+
+\begin{enumerate}
+  \item Understanding Chinese and English tasks;
+  \item Generating structurally correct tool calls;
+  \item Writing and repairing simple code;
+  \item Performing basic mathematical reasoning;
+  \item Interpreting tool results and performing limited error correction from failures;
+  \item Maintaining goals, constraints, state updates, and key tool results in long tasks under a fixed state budget;
+  \item Producing concise, verifiable final answers.
+\end{enumerate}
+
+Exact computation and program execution are delegated to external tools. The model focuses on learning task decomposition, tool selection, argument construction, result interpretation, stopping conditions, and memory trade-offs under limited capacity.
+
+\subsubsection{Scope of the First Version}
+
+\begin{itemize}
+  \item Basic arithmetic, algebra, ratios, unit conversion, and simple word problems;
+  \item Small Python programs and basic Bash/Shell tasks;
+  \item Reading small code files and repairing code based on unit test failures;
+  \item Calculator, Python, Shell, file, and test tool calls;
+  \item Controlled Agent or state-tracking trajectories of 8--64 steps;
+  \item Final state queries after variables, constraints, file state, and tool results have been overwritten multiple times;
+  \item Selective recall of key events once they fall outside the local window.
+\end{itemize}
+
+\subsubsection{Out of Scope for the First Version}
+
+\begin{itemize}
+  \item Large repository-level software engineering;
+  \item Difficult competition mathematics;
+  \item Permanent personalized memory across users and across sessions;
+  \item Multi-Agent collaboration, GUI automation, and multimodality;
+  \item Lossless retention of histories of arbitrary length;
+  \item Surpassing Full Attention across the board under short-context or unlimited-compute conditions.
+\end{itemize}
+
+\subsection{Current Architecture Status}
+
+\subsubsection{Frozen: Utility Consolidation Memory v1}
+
+Only one candidate enters long-term memory competition at a time:
+
+\[
+\mathcal R_t=M_t\cup\{c_t\}.
+\]
+
+During training, counterfactual future loss after the decision generates the utility labels:
+
+\[
+u_{t,i} =
+\mathcal L_{\bar\theta,F}
+\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right) -
+\mathcal L_{\bar\theta,F}
+\left(Y_t\mid B_t,\mathcal R_t\right).
+\]
+
+The predictor may only use information already observed at decision time:
+
+\[
+\hat u_{t,i}=f_\phi(m_i,g_t,B_t,\mathcal R_t).
+\]
+
+When capacity is exceeded, only the single record with the lowest predicted utility is evicted:
+
+\[
+M_{t+1} =
+\mathcal R_t\setminus
+\left\{ \arg\min_i\hat u_{t,i}\right\}.
+\]
+
+See \href{utility-consolidation-memory-v1.md}{Utility Consolidation Memory v1} for the complete definition.
+
+\subsubsection{Explicitly Excluded from v1}
+
+\begin{itemize}
+  \item Explicit age, occupancy, or time decay;
+  \item Novelty, surprise, or conflict gates;
+  \item Event association graphs;
+  \item soft write;
+  \item Interpolation, rewriting, or merging of memory content;
+  \item Gumbel-Softmax or differentiable Top-K;
+  \item Backpropagation or future information access at inference time.
+\end{itemize}
+
+\subsubsection{Still Not Frozen}
+
+\begin{lstlisting}[style=notes]
+Parameter scale: about 1.0B-1.3B
+Model type: autoregressive text generation model
+Training precision: BF16
+Primary languages: Chinese and English
+Primary domains: tool calling, simple code, basic mathematics, long-task state retention
+Deployment target: inference on a single 16GB-48GB GPU
+\end{lstlisting}
+
+The following still require controlled experiments:
+
+\begin{itemize}
+  \item Whether the backbone uses Full/Local Attention, linear attention, or a hybrid structure;
+  \item The number of layers, hidden size, FFN width, and the layer position for memory reads;
+  \item The local window $W$;
+  \item The long-term capacity $S$, the waiting period $D$, and the supervision horizon $F$;
+  \item Event record granularity, encoding dimension, and how the original text is retained;
+  \item The concrete implementation of the Utility Predictor;
+  \item Positional encoding, Tokenizer, data mixture, and training tokens.
+\end{itemize}
+
+Freezing the memory formulas does not mean that the final 1B backbone has been decided.
+
+\subsection{Public Models and Architecture References}
+
+\subsubsection{TinyLlama-1.1B: A Standard Small Transformer}
+
+\begin{table}[htbp]\centering
+\begin{tabular}{lr}\toprule
+Item & Configuration\\
+\midrule
+Parameter count & about 1.1B\\
+Layers & 22\\
+Hidden size & 2048\\
+FFN size & 5632\\
+Query/KV heads & 32/4\\
+Attention & GQA\\
+Activation/normalization & SwiGLU/RMSNorm\\
+Positional encoding & RoPE\\
+Vocabulary/context & 32K/2048\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+References: \href{https://github.com/jzhang38/tinyllama}{TinyLlama official repository}, \href{https://github.com/jzhang38/TinyLlama/blob/main/PRETRAIN.md}{pretraining notes}.
+
+\subsubsection{OLMo-1B: An Open Training Reference}
+
+Used to compare training curves, data efficiency, and language model capability at a similar number of tokens. References: \href{https://github.com/allenai/OLMo}{OLMo official repository}, \href{https://huggingface.co/allenai/OLMo-1B}{OLMo-1B model card}.
+
+\subsubsection{RWKV-7: A Fixed Recurrent State Reference}
+
+RWKV-7 maintains a fixed recurrent state with a generalized Delta Rule and vector gating and serves as a continuous-state control. It is used to test whether discrete, addressable event records really outperform a state matrix that continuously compresses history.
+
+References: \href{https://arxiv.org/abs/2503.14456}{RWKV-7}, \href{https://github.com/BlinkDL/RWKV-LM}{official repository}.
+
+\subsubsection{Kimi Linear / KDA: A Linear Attention Reference}
+
+The core state update of KDA can be summarized as:
+
+\[
+S_t=(D_t-a_tb_t^\top)S_{t-1}+k_tv_t^\top.
+\]
+
+It is used to compare the quality and efficiency differences between continuous matrix state, hybrid Full Attention, and discrete event retention. Reference: \href{https://arxiv.org/abs/2510.26692}{Kimi Linear}.
+
+Kimi K3 is a large-scale combination of KDA, Gated MLA, Attention Residuals, and Stable LatentMoE and does not serve as a strict 1B capability baseline.
+
+\subsubsection{Other Capability and Hybrid Architecture References}
+
+\begin{itemize}
+  \item \href{https://arxiv.org/abs/2411.13676}{Hymba-1.5B}: small-model hybrid architecture, caching, and long-context efficiency;
+  \item \href{https://arxiv.org/abs/2409.12186}{Qwen2.5-Coder-1.5B}: simple code and Code Agent capability;
+  \item \href{https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B/blob/main/README.md}{SmolLM2-1.7B}: small-model data engineering, mathematics, instruction following, and Function calling.
+\end{itemize}
+
+\subsubsection{Adjacent Memory Methods}
+
+\begin{itemize}
+  \item \href{https://arxiv.org/abs/2506.15841}{MEM1}: a joint reasoning--memory state of fixed capacity;
+  \item \href{https://arxiv.org/abs/2605.21768}{Memory-R2}: local and global credit assignment for long-range memory operations;
+  \item \href{https://arxiv.org/abs/2501.00663}{Titans}: Attention and test-time neural long-term memory;
+  \item \href{https://arxiv.org/abs/2404.07143}{Infini-attention}: local attention and bounded compressed memory;
+  \item \href{https://arxiv.org/abs/2207.06881}{Recurrent Memory Transformer}: recurrent memory tokens across segments.
+\end{itemize}
+
+\subsection{Comparison Responsibilities}
+
+\begin{table}[htbp]\centering
+\begin{tabular}{llr}\toprule
+Subject & Main comparison content & Strict architectural control\\
+\midrule
+TinyLlama-1.1B & Standard small GQA, parameter efficiency & No\\
+OLMo-1B & Open training process, similar token budget & No\\
+RWKV-7 & Fixed continuous state, throughput, state tracking & Yes in the controlled implementation\\
+KDA & Linear attention, continuous matrix state & Yes in the controlled implementation\\
+Hymba/Qwen/SmolLM2 & Hybrid, code, mathematics, and Agent capability & No\\
+FIFO/random eviction & Lower bound of memory policies & Yes\\
+Future Oracle eviction & Offline upper bound of the Reader and the record representation & Yes\\
+Predicted utility eviction & Deployable policy of this project & Yes\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Core Research Hypothesis}
+
+This project does not claim to surpass Transformers or linear attention across the board. The claim to be validated is:
+
+\begin{notesquote}
+Under the same resident state budget, for trajectories where key events are sparse, tasks are very long, and state is overwritten multiple times, a single eviction policy trained with post-decision counterfactual future loss retains future-useful information more reliably than time-based eviction and continuously compressed state.
+\end{notesquote}
+
+\subsubsection{Relative to Full/Local Transformers}
+
+The KV state of a full-context Transformer grows with the total length:
+
+\[
+O(Td).
+\]
+
+This project uses a local window $W$ and a long-term capacity $S$:
+
+\[
+O((W+S)d).
+\]
+
+The difference from a sliding window is not whether the state is bounded, but that old records are evicted by predicted future value rather than by pure temporal order.
+
+\subsubsection{Relative to Linear or Recurrent State Models}
+
+The advantages of linear attention and RWKV/KDA are a fixed state and efficient per-token updates. The hypothesized advantages of this project are:
+
+\begin{itemize}
+  \item Event records keep independent identities;
+  \item A single record can be addressed, masked, and deleted;
+  \item History does not have to be continuously mixed into the same matrix state;
+  \item Memory trade-offs have direct counterfactual future utility supervision;
+  \item Delayed decisions can use evidence already observed after an event occurs.
+\end{itemize}
+
+This project may be at a disadvantage in the pure throughput of linear models, in dense sequence modeling, and on tasks whose future usage is highly unpredictable.
+
+\subsection{Fair Comparison Rules}
+
+\subsubsection{Public Side-by-Side Comparison and Controlled Experiments Are Kept Separate}
+
+Public models are used to answer final capability level and deployment efficiency; controlled small models are used for architectural attribution. Public models with different Tokenizers, data, and training tokens cannot be used to prove that utility memory is effective.
+
+\subsubsection{Parameters and State Budget}
+
+Controlled models match total parameters, non-Embedding parameters, or training FLOPs, and report the other items in full. The state budget must include:
+
+\[
+\text{local KV}
++\text{short-term buffer}
++\text{long-term records}
++\text{metadata}.
+\]
+
+If the short-term buffer is fully contained in the local window, this should be stated explicitly to avoid double counting.
+
+\subsubsection{Cross-Tokenizer Metrics}
+
+Perplexity is not compared directly; Bits Per Byte is used uniformly:
+
+\[
+\operatorname{BPB} =
+\frac{\operatorname{NLL}}
+{N_{\mathrm{bytes}}\ln2}.
+\]
+
+Report Chinese, English, code, mathematics, and API/JSON BPB separately.
+
+\subsection{Evaluation Metrics}
+
+\subsubsection{General, Mathematics, Code, and Agent}
+
+\begin{itemize}
+  \item Chinese and English held-out BPB;
+  \item Accuracy on basic mathematics and tool-assisted mathematics;
+  \item Python pass@1, syntax correctness rate, and unit test pass rate;
+  \item Success rate of repairing code from error logs;
+  \item Tool-call JSON validity rate;
+  \item Tool selection and argument construction accuracy;
+  \item Multi-step task success rate, failure recovery rate, and final answer correctness rate.
+\end{itemize}
+
+\subsubsection{Long-Range Memory}
+
+\begin{itemize}
+  \item Fact recall across the local window;
+  \item Latest-value correctness rate after multiple state overwrites;
+  \item Stale-value misuse rate;
+  \item Performance degradation as irrelevant tool output increases;
+  \item Recall under different dependency distances $D,F$;
+  \item Record eviction accuracy;
+  \item Rank correlation between the Utility Predictor and the Oracle;
+  \item Selection regret of the predicted policy relative to the Oracle;
+  \item Transfer of the memory policy on a fully held-out domain.
+\end{itemize}
+
+\subsubsection{Efficiency}
+
+\begin{itemize}
+  \item Prefill and Decode tokens/s;
+  \item First-token, single-token, and consolidation latency;
+  \item Peak GPU memory and total state size;
+  \item Number of consolidations per thousand tokens;
+  \item FLOPs for counterfactual label generation;
+  \item Total training tokens/s, per-step time, and MFU.
+\end{itemize}
+
+Offline counterfactual label cost must not be counted toward online latency at inference time; training cost must be reported in full.
+
+\subsection{Experiment Stages}
+
+\subsubsection{Stage 0: Selector Validation Without a Language Model}
+
+Validate on synthetic state machines and key-value overwrite tasks:
+
+\begin{enumerate}
+  \item That the single eviction formula and the mask implementation are correct;
+  \item Whether Future Oracle significantly exceeds FIFO;
+  \item Whether the single eviction explanation holds when records are redundant or complementary;
+  \item The effect of candidate order on the greedy policy.
+\end{enumerate}
+
+If Oracle does not exceed FIFO, do not proceed to larger-model experiments.
+
+\subsubsection{Stage 1: 20M--50M Reader and Utility Predictor}
+
+\begin{enumerate}
+  \item First train the Reader to use external records;
+  \item Freeze or EMA the Reader/event encoder;
+  \item Generate a small number of exact counterfactual labels;
+  \item Train the Utility Predictor;
+  \item Compare FIFO, random, predicted utility, and Oracle.
+\end{enumerate}
+
+\subsubsection{Stage 2: 100M--150M Controlled Architecture Experiments}
+
+Match Tokenizer, data order, parameters/FLOPs, batch, optimizer, training tokens, and random seeds. Compare:
+
+\begin{itemize}
+  \item Local Transformer + FIFO;
+  \item Local Transformer + Utility Consolidation Memory;
+  \item One RWKV/KDA-style continuous-state baseline;
+  \item A Full Attention upper bound when necessary.
+\end{itemize}
+
+\subsubsection{Stage 3: 300M--400M Scaling Validation}
+
+Scale only the approaches that simultaneously satisfy the following conditions:
+
+\begin{itemize}
+  \item Oracle has a clear upper bound;
+  \item The predicted policy is significantly close to Oracle;
+  \item It exceeds FIFO and the continuous-state baseline at the same state budget;
+  \item Label cost is still acceptable.
+\end{itemize}
+
+\subsubsection{Stage 4: Final Model of About 1B Parameters}
+
+In the end only one candidate of about 1B parameters is trained. The Transformer, linear, or hybrid backbone is determined by the quality--efficiency curves of stages 2--3.
+
+\subsection{Draft Agent Tool Protocol}
+
+The first version is expected to support:
+
+\begin{lstlisting}[style=notes]
+calculator
+python
+shell
+read_file
+apply_patch
+run_tests
+\end{lstlisting}
+
+Initial limits:
+
+\begin{lstlisting}[style=notes]
+max_agent_steps: 64
+max_retries_per_step: 2
+python_timeout_seconds: 10
+shell_timeout_seconds: 10
+max_tool_output_chars: 12000
+\end{lstlisting}
+
+Short capability evaluations keep an 8-step subset; memory evaluations extend progressively to 16, 32, and 64 steps.
+
+\subsection{Results Recording Template}
+
+\subsubsection{Memory Selection}
+
+\begin{table}[htbp]\centering
+\begin{tabular}{lrrrrr}\toprule
+Policy & Total state budget & Final success rate & Stale-value misuse rate & Selection Regret & Consolidation latency\\
+\midrule
+FIFO & & & & & \\
+Random & & & & & \\
+Predicted Utility & & & & & \\
+Future Oracle & & & & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Architecture Quality and Efficiency}
+
+\begin{table}[htbp]\centering
+\begin{tabular}{lrrrrrr}\toprule
+Model & Parameters & Training Tokens & BPB & Agent success rate & Decode tok/s & State size\\
+\midrule
+Local Transformer & & & & & & \\
+Linear/Recurrent & & & & & & \\
+Utility Memory & & & & & & \\
+Full Attention Upper Bound & & & & & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Current Decisions and Stopping Conditions}
+
+Decided:
+
+\begin{itemize}
+  \item Positioning as a small Agent model of about 1B parameters;
+  \item Tool calling, simple code, basic mathematics, and long-task state retention;
+  \item Not training a full conventional 1B baseline again;
+  \item Public models carry the final capability reference;
+  \item Small-scale controlled experiments carry the architectural attribution;
+  \item The core formulas of Utility Consolidation Memory v1;
+  \item Single-candidate admission, single-record eviction, and immutable event records;
+  \item The first version adds no other memory gates or association modules.
+\end{itemize}
+
+Still undecided:
+
+\begin{itemize}
+  \item The full backbone sequence-mixing structure;
+  \item Depth, width, and the layer position for memory reads;
+  \item $W,S,D,F$;
+  \item Event record encoding;
+  \item Label sampling rate and the teacher update schedule;
+  \item Tokenizer, data mixture, and final training tokens.
+\end{itemize}
+
+Stopping conditions:
+
+\begin{enumerate}
+  \item Future Oracle does not exceed FIFO at the same budget;
+  \item Predicted utility cannot approach Oracle significantly over the long run;
+  \item Under the same state budget, it does not exceed the sliding-window or continuous-state baseline;
+  \item Label cost cannot be reduced to an acceptable range through sampling, caching, or distillation.
+\end{enumerate}
