@@ -32,7 +32,8 @@
 ## 文档
 
 - [架构与横向比较方案](docs/architecture-comparison-plan.md)
-- [候选结构 A：通用持久情景记忆层的数学定义](docs/candidate-persistent-episodic-memory.md)
+- [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
+- [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)
 - [决策记录](docs/decisions.md)
 
 ## 原则

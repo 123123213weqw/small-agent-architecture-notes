@@ -1,4 +1,6 @@
-# 候选结构 A：通用持久情景记忆层的数学定义
+# 候选结构 A（已被简化版取代）：通用持久情景记忆层的数学定义
+
+> **状态：Superseded。** 本文保留早期推导和失败分析，不再作为实现规范。当前冻结的最小原型见 [效用巩固记忆 v1](utility-consolidation-memory-v1.md)。
 
 > 状态：研究提案，未接受为最终架构  
 > 工作名称：Latent Persistent Episodic Memory（LPEM）  
