@@ -50,7 +50,7 @@
 
 - Status: Accepted
 - Decision: Stop extending this memory direction when Future Oracle cannot exceed FIFO under the same total state budget.
-- Decision: Only when the predicted-utility policy can approach Oracle and exceeds FIFO and the continuous-state baseline in controlled experiments does the project scale to 300M-400M and finally to about 1B.
+- Decision: Only when the predicted-utility policy can approach Oracle and exceeds FIFO and the continuous-state baseline in controlled experiments does the project scale to 300M–400M and finally to about 1B.
 
 ## Open decisions
 

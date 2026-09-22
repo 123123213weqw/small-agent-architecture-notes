@@ -26,7 +26,7 @@ Exact computation and program execution are delegated to external tools. The mod
 - Small Python programs and basic Bash/Shell tasks;
 - Reading small code files and repairing code based on unit test failures;
 - Calculator, Python, Shell, file, and test tool calls;
-- Controlled Agent or state-tracking trajectories of 8-64 steps;
+- Controlled Agent or state-tracking trajectories of 8–64 steps;
 - Final state queries after variables, constraints, file state, and tool results have been overwritten multiple times;
 - Selective recall of key events once they fall outside the local window.
 
@@ -88,12 +88,12 @@ See [Utility Consolidation Memory v1](utility-consolidation-memory-v1.md) for th
 ### 2.3 Still Not Frozen
 
 ```text
-Parameter scale: about 1.0B-1.3B
+Parameter scale: about 1.0B–1.3B
 Model type: autoregressive text generation model
 Training precision: BF16
 Primary languages: Chinese and English
 Primary domains: tool calling, simple code, basic mathematics, long-task state retention
-Deployment target: inference on a single 16GB-48GB GPU
+Deployment target: inference on a single 16GB–48GB GPU
 ```
 
 The following still require controlled experiments:
@@ -156,7 +156,7 @@ Kimi K3 is a large-scale combination of KDA, Gated MLA, Attention Residuals, and
 
 ### 3.6 Adjacent Memory Methods
 
-- [MEM1](https://arxiv.org/abs/2506.15841): a joint reasoning-memory state of fixed capacity;
+- [MEM1](https://arxiv.org/abs/2506.15841): a joint reasoning–memory state of fixed capacity;
 - [Memory-R2](https://arxiv.org/abs/2605.21768): local and global credit assignment for long-range memory operations;
 - [Titans](https://arxiv.org/abs/2501.00663): Attention and test-time neural long-term memory;
 - [Infini-attention](https://arxiv.org/abs/2404.07143): local attention and bounded compressed memory;
@@ -288,7 +288,7 @@ Validate on synthetic state machines and key-value overwrite tasks:
 
 If Oracle does not exceed FIFO, do not proceed to larger-model experiments.
 
-### 8.2 Stage 1: 20M-50M Reader and Utility Predictor
+### 8.2 Stage 1: 20M–50M Reader and Utility Predictor
 
 1. First train the Reader to use external records;
 2. Freeze or EMA the Reader/event encoder;
@@ -296,7 +296,7 @@ If Oracle does not exceed FIFO, do not proceed to larger-model experiments.
 4. Train the Utility Predictor;
 5. Compare FIFO, random, predicted utility, and Oracle.
 
-### 8.3 Stage 2: 100M-150M Controlled Architecture Experiments
+### 8.3 Stage 2: 100M–150M Controlled Architecture Experiments
 
 Match Tokenizer, data order, parameters/FLOPs, batch, optimizer, training tokens, and random seeds. Compare:
 
@@ -305,7 +305,7 @@ Match Tokenizer, data order, parameters/FLOPs, batch, optimizer, training tokens
 - One RWKV/KDA-style continuous-state baseline;
 - A Full Attention upper bound when necessary.
 
-### 8.4 Stage 3: 300M-400M Scaling Validation
+### 8.4 Stage 3: 300M–400M Scaling Validation
 
 Scale only the approaches that simultaneously satisfy the following conditions:
 
@@ -316,7 +316,7 @@ Scale only the approaches that simultaneously satisfy the following conditions:
 
 ### 8.5 Stage 4: Final Model of About 1B Parameters
 
-In the end only one candidate of about 1B parameters is trained. The Transformer, linear, or hybrid backbone is determined by the quality-efficiency curves of stages 2-3.
+In the end only one candidate of about 1B parameters is trained. The Transformer, linear, or hybrid backbone is determined by the quality–efficiency curves of stages 2–3.
 
 ## 9. Draft Agent Tool Protocol
 
