@@ -106,6 +106,98 @@ RELATION_AUG_GOAL_TEMPLATES: tuple[str, ...] = (
     "检查关系图中 {tokens} 对应端点之间是否有链路。",
 )
 
+# B2.2 uses a compositional grammar instead of a short list of complete
+# sentences.  Training and validation components are deliberately disjoint;
+# frozen D/E test renderers remain unchanged.
+ROBUST_TRAIN_EDGE_PREFIXES: tuple[str, ...] = (
+    "",
+    "记录：",
+    "工具返回：",
+    "当前已知：",
+)
+ROBUST_TRAIN_EDGE_CLAUSES: tuple[str, ...] = (
+    "{a} 指向 {b}。",
+    "从 {a} 可以直接到达 {b}。",
+    "{b} 是 {a} 的后继节点。",
+    "一条有向边从 {a} 通往 {b}。",
+)
+ROBUST_TRAIN_EDGE_SUFFIXES: tuple[str, ...] = (
+    "",
+    " 这是一条单步关系。",
+    " 此连接记录有效。",
+)
+ROBUST_TRAIN_GOAL_PREFIXES: tuple[str, ...] = (
+    "",
+    "请根据已有记录，",
+    "结合工具返回，",
+    "沿图中的有向边，",
+)
+ROBUST_TRAIN_GOAL_CLAUSES: tuple[str, ...] = (
+    "判断 {tokens} 两个端点是否可达。",
+    "检查 {tokens} 之间是否存在完整路径。",
+    "推导从 {tokens} 的一个端点能否走到另一个端点。",
+    "找出连接 {tokens} 所需的中间关系。",
+)
+
+ROBUST_VALIDATION_EDGE_PREFIXES: tuple[str, ...] = (
+    "补充说明：",
+    "检索结果如下：",
+    "来自关系图的证据表明，",
+)
+ROBUST_VALIDATION_EDGE_CLAUSES: tuple[str, ...] = (
+    "节点 {a} 的下一跳是 {b}。",
+    "若位于 {a}，下一步可前往 {b}。",
+    "以 {a} 为起点的这条边终止于 {b}。",
+    "{b} 接收来自 {a} 的输出。",
+)
+ROBUST_VALIDATION_EDGE_SUFFIXES: tuple[str, ...] = (
+    "",
+    " 这是局部路径证据。",
+)
+ROBUST_VALIDATION_GOAL_PREFIXES: tuple[str, ...] = (
+    "在不遗漏中间节点的前提下，",
+    "使用上述局部证据，",
+    "综合所有可用连接，",
+)
+ROBUST_VALIDATION_GOAL_CLAUSES: tuple[str, ...] = (
+    "核对 {tokens} 是否处于同一条可达链上。",
+    "判断能否沿有向关系从 {tokens} 的一端抵达另一端。",
+    "寻找一条把 {tokens} 两端串联起来的路径。",
+)
+
+
+def _compose_templates(
+    prefixes: Sequence[str], clauses: Sequence[str], suffixes: Sequence[str]
+) -> tuple[str, ...]:
+    return tuple(
+        f"{prefix}{clause}{suffix}"
+        for prefix in prefixes
+        for clause in clauses
+        for suffix in suffixes
+    )
+
+
+ROBUST_TRAIN_EDGE_TEMPLATES = _compose_templates(
+    ROBUST_TRAIN_EDGE_PREFIXES,
+    ROBUST_TRAIN_EDGE_CLAUSES,
+    ROBUST_TRAIN_EDGE_SUFFIXES,
+)
+ROBUST_VALIDATION_EDGE_TEMPLATES = _compose_templates(
+    ROBUST_VALIDATION_EDGE_PREFIXES,
+    ROBUST_VALIDATION_EDGE_CLAUSES,
+    ROBUST_VALIDATION_EDGE_SUFFIXES,
+)
+ROBUST_TRAIN_GOAL_TEMPLATES = tuple(
+    f"{prefix}{clause}"
+    for prefix in ROBUST_TRAIN_GOAL_PREFIXES
+    for clause in ROBUST_TRAIN_GOAL_CLAUSES
+)
+ROBUST_VALIDATION_GOAL_TEMPLATES = tuple(
+    f"{prefix}{clause}"
+    for prefix in ROBUST_VALIDATION_GOAL_PREFIXES
+    for clause in ROBUST_VALIDATION_GOAL_CLAUSES
+)
+
 # These are task vocabulary, not episode-specific entities.
 FIXED_TOKENS = {
     "remember_for_possible_followup",
@@ -188,15 +280,27 @@ class B21Renderer:
 
     def __init__(self, family: str, namespace: str):
         relation_variant: int | None = None
+        robust_split: str | None = None
         if family.startswith("R") and family[1:].isdigit():
             relation_variant = int(family[1:])
             if relation_variant >= len(RELATION_AUG_EDGE_TEMPLATES):
                 raise ValueError(f"unknown relation template family: {family}")
+        elif family.startswith("RT") and family[2:].isdigit():
+            robust_split = "train"
+            relation_variant = int(family[2:])
+            if relation_variant >= len(ROBUST_TRAIN_EDGE_TEMPLATES):
+                raise ValueError(f"unknown robust train family: {family}")
+        elif family.startswith("RV") and family[2:].isdigit():
+            robust_split = "validation"
+            relation_variant = int(family[2:])
+            if relation_variant >= len(ROBUST_VALIDATION_EDGE_TEMPLATES):
+                raise ValueError(f"unknown robust validation family: {family}")
         elif family not in {"A", "B", "C", "D", "E"}:
             raise ValueError(f"unknown template family: {family}")
         self.family = family
         self.namespace = namespace
         self.relation_variant = relation_variant
+        self.robust_split = robust_split
         self.base_family = (
             ("A", "B", "C")[relation_variant % 3]
             if relation_variant is not None
@@ -225,6 +329,10 @@ class B21Renderer:
         return record.kind
 
     def _template(self, key: str) -> str:
+        if key == "edge" and self.robust_split == "train":
+            return ROBUST_TRAIN_EDGE_TEMPLATES[self.relation_variant or 0]
+        if key == "edge" and self.robust_split == "validation":
+            return ROBUST_VALIDATION_EDGE_TEMPLATES[self.relation_variant or 0]
         if key == "edge" and self.relation_variant is not None:
             return RELATION_AUG_EDGE_TEMPLATES[self.relation_variant]
         if self.base_family == "A":
@@ -249,7 +357,15 @@ class B21Renderer:
         if hidden:
             return HIDDEN_GOALS[self.base_family], "hidden_query"
         tokens = "、".join(sorted(self.entity(token) for token in episode.goal_tokens))
-        if episode.task == "relation_chain" and self.relation_variant is not None:
+        if episode.task == "relation_chain" and self.robust_split == "train":
+            template = ROBUST_TRAIN_GOAL_TEMPLATES[
+                (self.relation_variant or 0) % len(ROBUST_TRAIN_GOAL_TEMPLATES)
+            ]
+        elif episode.task == "relation_chain" and self.robust_split == "validation":
+            template = ROBUST_VALIDATION_GOAL_TEMPLATES[
+                (self.relation_variant or 0) % len(ROBUST_VALIDATION_GOAL_TEMPLATES)
+            ]
+        elif episode.task == "relation_chain" and self.relation_variant is not None:
             template = RELATION_AUG_GOAL_TEMPLATES[self.relation_variant]
         elif self.base_family == "A":
             template = TRAIN_GOALS[episode.task][0]
@@ -464,7 +580,7 @@ def validate_group(group: dict[str, Any]) -> list[str]:
 
 
 def _split_specs(preset: str) -> tuple[SplitSpec, ...]:
-    base_preset = preset.removesuffix("_relation_aug")
+    base_preset = preset.removesuffix("_relation_aug").removesuffix("_relation_robust")
     if base_preset == "audit":
         train, validation, test = 100, 24, 24
     elif base_preset == "stage1":
@@ -486,13 +602,19 @@ def _assignment(
     spec: SplitSpec,
     *,
     relation_augmented: bool = False,
+    relation_robust: bool = False,
 ) -> tuple[int, int, str, str]:
     task_index = index % len(TASKS)
     occurrence = index // len(TASKS)
     capacity = CAPACITIES[(task_index + occurrence) % len(CAPACITIES)]
     hard_negative_count = HARD_NEGATIVES[(task_index + 2 * occurrence) % len(HARD_NEGATIVES)]
     family = spec.template_families[(task_index + occurrence) % len(spec.template_families)]
-    if relation_augmented and spec.name in {"train", "validation"} and TASKS[task_index] == "relation_chain":
+    if relation_robust and spec.name in {"train", "validation"} and TASKS[task_index] == "relation_chain":
+        if spec.name == "train":
+            family = f"RT{occurrence % len(ROBUST_TRAIN_EDGE_TEMPLATES)}"
+        else:
+            family = f"RV{occurrence % len(ROBUST_VALIDATION_EDGE_TEMPLATES)}"
+    elif relation_augmented and spec.name in {"train", "validation"} and TASKS[task_index] == "relation_chain":
         family = f"R{occurrence % len(RELATION_AUG_EDGE_TEMPLATES)}"
     behavior = BEHAVIOR_POLICIES[(task_index + occurrence) % len(BEHAVIOR_POLICIES)]
     return capacity, hard_negative_count, family, behavior
@@ -514,7 +636,10 @@ def materialize_split_episodes(preset: str, seed: int, split_name: str) -> list[
     prepared: list[PreparedEpisode] = []
     for i, episode in enumerate(episodes):
         capacity, hard_count, family, behavior = _assignment(
-            i, spec, relation_augmented=preset.endswith("_relation_aug")
+            i,
+            spec,
+            relation_augmented=preset.endswith("_relation_aug"),
+            relation_robust=preset.endswith("_relation_robust"),
         )
         episode_seed = seed * 1_000_003 + split_index * 100_003 + i
         hardened = harden_episode(episode, episode_seed + 17, count=hard_count)
@@ -576,9 +701,13 @@ def build_dataset(
         "hard_negative_counts": list(HARD_NEGATIVES),
         "tasks": list(TASKS),
         "training_template_families": (
-            ["A", "B", "C", *[f"R{i}" for i in range(len(RELATION_AUG_EDGE_TEMPLATES))]]
-            if preset.endswith("_relation_aug")
-            else ["A", "B", "C"]
+            ["A", "B", "C", *[f"RT{i}" for i in range(len(ROBUST_TRAIN_EDGE_TEMPLATES))]]
+            if preset.endswith("_relation_robust")
+            else (
+                ["A", "B", "C", *[f"R{i}" for i in range(len(RELATION_AUG_EDGE_TEMPLATES))]]
+                if preset.endswith("_relation_aug")
+                else ["A", "B", "C"]
+            )
         ),
         "composition_template_family": "D",
         "composition_unseen_characters": unseen,
@@ -610,7 +739,10 @@ def build_dataset(
 
         for i, episode in enumerate(episodes):
             capacity, hard_count, family, behavior = _assignment(
-                i, spec, relation_augmented=preset.endswith("_relation_aug")
+                i,
+                spec,
+                relation_augmented=preset.endswith("_relation_aug"),
+                relation_robust=preset.endswith("_relation_robust"),
             )
             episode_groups, episode_entities = collect_episode_groups(
                 episode,
@@ -714,7 +846,14 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("data/b2_1_stage1_audit"))
     parser.add_argument(
         "--preset",
-        choices=("audit", "stage1", "audit_relation_aug", "stage1_relation_aug"),
+        choices=(
+            "audit",
+            "stage1",
+            "audit_relation_aug",
+            "stage1_relation_aug",
+            "audit_relation_robust",
+            "stage1_relation_robust",
+        ),
         default="audit",
     )
     parser.add_argument("--seed", type=int, default=0)

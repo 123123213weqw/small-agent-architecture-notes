@@ -169,6 +169,7 @@ def train(
     scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
     history: list[dict[str, float]] = []
     best = float("inf")
+    best_selection = float("-inf")
     update = 0
 
     for epoch in range(epochs):
@@ -200,13 +201,45 @@ def train(
             seen += size
 
         validation = validation_losses(model, validation_loader, config, device)
-        row = {
+        row: dict[str, float] = {
             "epoch": float(epoch + 1),
             **{f"train_{name}": value / max(1, seen) for name, value in totals.items()},
             **{f"validation_{name}": value for name, value in validation.items()},
             "seconds": time.perf_counter() - started,
             "updates": float(update),
         }
+        selection_mode = str(config.get("checkpoint_selection", "validation_total"))
+        selection_value = -float(validation["total"])
+        if selection_mode == "relation_rollout":
+            selection_rows, _, _ = evaluate_rollout(
+                model,
+                str(config.get("selection_rollout_split", "validation")),
+                config,
+                device,
+                int(config.get("selection_rollout_maximum_episodes", 0)) or None,
+                preset=str(config.get("selection_rollout_preset", "stage1")),
+                task_filter="relation_chain",
+            )
+            model_rows = [item for item in selection_rows if item["policy"] == "model"]
+            if not model_rows:
+                raise RuntimeError("relation rollout checkpoint selection produced no rows")
+            relation_success = float(np.mean([float(item["success"]) for item in model_rows]))
+            relation_recall = float(
+                np.mean([float(item["required_recall"]) for item in model_rows])
+            )
+            relation_regret = float(
+                np.mean([float(item["eviction_regret"]) for item in model_rows])
+            )
+            row.update(
+                {
+                    "validation_relation_rollout_success": relation_success,
+                    "validation_relation_required_recall": relation_recall,
+                    "validation_relation_eviction_regret": relation_regret,
+                }
+            )
+            selection_value = relation_success
+        elif selection_mode != "validation_total":
+            raise ValueError(f"unknown checkpoint selection mode: {selection_mode}")
         history.append(row)
         print(json.dumps(row), flush=True)
         if writer is not None:
@@ -214,8 +247,14 @@ def train(
                 if name not in {"epoch", "updates"}:
                     writer.add_scalar(f"training/{name}", value, epoch + 1)
             writer.flush()
-        if validation["total"] < best:
+        improved = selection_value > best_selection + 1e-12
+        tied_but_lower_loss = (
+            abs(selection_value - best_selection) <= 1e-12
+            and validation["total"] < best
+        )
+        if improved or tied_but_lower_loss:
             best = validation["total"]
+            best_selection = selection_value
             save_checkpoint_atomic(
                 checkpoint,
                 {
@@ -223,6 +262,8 @@ def train(
                     "config": config,
                     "epoch": epoch + 1,
                     "validation_total": best,
+                    "selection_mode": selection_mode,
+                    "selection_value": best_selection,
                 },
             )
     return history
@@ -392,10 +433,15 @@ def evaluate_rollout(
     config: dict[str, Any],
     device: torch.device,
     maximum_episodes: int | None = None,
+    *,
+    preset: str = "stage1",
+    task_filter: str | None = None,
 ) -> tuple[list[dict[str, object]], list[dict[str, Any]], dict[str, float]]:
     prepared = materialize_split_episodes(
-        "stage1", int(config["evaluation_seed"]), split
+        preset, int(config["evaluation_seed"]), split
     )
+    if task_filter is not None:
+        prepared = [item for item in prepared if item.episode.task == task_filter]
     if maximum_episodes is not None:
         prepared = prepared[:maximum_episodes]
     states = [
@@ -605,6 +651,7 @@ def main() -> None:
             config,
             device,
             int(maximum_rollout) if maximum_rollout else None,
+            preset=str(config.get("rollout_preset", "stage1")),
         )
         rollout_rows.extend(split_rollout)
         traces.extend(split_traces)
@@ -651,6 +698,8 @@ def main() -> None:
         "parameters": parameters,
         "best_epoch": int(saved["epoch"]),
         "best_validation_total": float(saved["validation_total"]),
+        "checkpoint_selection": str(saved.get("selection_mode", "validation_total")),
+        "best_selection_value": float(saved.get("selection_value", -saved["validation_total"])),
         "history": history,
         "offline": offline_aggregates,
         "offline_efficiency": offline_summary,

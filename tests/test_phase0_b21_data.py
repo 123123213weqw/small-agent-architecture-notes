@@ -10,6 +10,8 @@ from experiments.phase0_b21_data import (
     FORBIDDEN_INPUT_FIELDS,
     PARAPHRASE_TEMPLATES,
     RELATION_AUG_EDGE_TEMPLATES,
+    ROBUST_TRAIN_EDGE_TEMPLATES,
+    ROBUST_VALIDATION_EDGE_TEMPLATES,
     SplitSpec,
     build_dataset,
     collect_episode_groups,
@@ -20,6 +22,47 @@ from experiments.phase0_b21_data import (
 
 
 class Phase0B21DataTests(unittest.TestCase):
+    def test_robust_relation_grammar_has_disjoint_validation_and_frozen_tests(self):
+        frozen = {COMPOSITION_TEMPLATES["edge"], PARAPHRASE_TEMPLATES["edge"][1]}
+        self.assertTrue(set(ROBUST_TRAIN_EDGE_TEMPLATES).isdisjoint(frozen))
+        self.assertTrue(set(ROBUST_VALIDATION_EDGE_TEMPLATES).isdisjoint(frozen))
+        self.assertTrue(
+            set(ROBUST_TRAIN_EDGE_TEMPLATES).isdisjoint(ROBUST_VALIDATION_EDGE_TEMPLATES)
+        )
+
+    def test_robust_relation_keeps_frozen_tests_and_volume(self):
+        specs = (
+            SplitSpec("train", 12, (32,), ("A", "B", "C")),
+            SplitSpec("validation", 12, (32,), ("A", "B", "C")),
+            SplitSpec("test_composition", 12, (32,), ("D",)),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = build_dataset(root / "baseline", "audit", seed=0, specs=specs)
+            robust = build_dataset(
+                root / "robust", "audit_relation_robust", seed=0, specs=specs
+            )
+            self.assertEqual(
+                baseline["splits"]["train"]["decisions"],
+                robust["splits"]["train"]["decisions"],
+            )
+            self.assertEqual(
+                baseline["splits"]["test_composition"]["sha256"],
+                robust["splits"]["test_composition"]["sha256"],
+            )
+            self.assertTrue(
+                any(
+                    key.startswith("RT")
+                    for key in robust["splits"]["train"]["template_counts"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    key.startswith("RV")
+                    for key in robust["splits"]["validation"]["template_counts"]
+                )
+            )
+
     def test_relation_augmentation_keeps_frozen_tests_and_volume(self):
         specs = (
             SplitSpec("train", 12, (32,), ("A", "B", "C")),
