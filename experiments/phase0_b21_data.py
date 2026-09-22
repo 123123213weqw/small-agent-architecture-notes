@@ -158,7 +158,7 @@ def _dynamic_token(token: str) -> bool:
 
 
 class B21Renderer:
-    """Render one template family while namespacing episode entities by split."""
+    """Render one template family with an episode-unique neutral namespace."""
 
     def __init__(self, family: str, namespace: str):
         if family not in {"A", "B", "C", "D", "E"}:
@@ -291,7 +291,7 @@ def make_decision_group(
     renderer: B21Renderer | None = None,
 ) -> dict[str, Any]:
     """Serialize one already-observed competition set plus training labels."""
-    renderer = renderer or B21Renderer(template_family, split)
+    renderer = renderer or B21Renderer(template_family, f"entity_{episode.eid}")
     goal, query_visibility = renderer.goal(episode)
     utilities_by_uid = counterfactual_utilities(episode, competing, candidate.position)
     utilities = [float(utilities_by_uid[item.uid]) for item in competing]
@@ -348,7 +348,7 @@ def collect_episode_groups(
 ) -> tuple[list[dict[str, Any]], set[str]]:
     """Roll out one behavior policy and return sampled complete decisions."""
     episode = harden_episode(episode, seed + 17, count=hard_negative_count)
-    renderer = B21Renderer(template_family, split)
+    renderer = B21Renderer(template_family, f"entity_{episode.eid}")
     rng = random.Random(seed)
     memory: list[Record] = []
     all_groups: list[dict[str, Any]] = []
@@ -467,7 +467,7 @@ def materialize_split_episodes(preset: str, seed: int, split_name: str) -> list[
         capacity, hard_count, family, behavior = _assignment(i, spec)
         episode_seed = seed * 1_000_003 + split_index * 100_003 + i
         hardened = harden_episode(episode, episode_seed + 17, count=hard_count)
-        renderer = B21Renderer(family, split_name)
+        renderer = B21Renderer(family, f"entity_{hardened.eid}")
         _, visibility = renderer.goal(hardened)
         prepared.append(
             PreparedEpisode(

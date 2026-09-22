@@ -92,9 +92,9 @@ class Phase0B21DataTests(unittest.TestCase):
             self.assertTrue((output / "AUDIT.md").is_file())
             train = (output / "train.jsonl").read_text(encoding="utf-8")
             test = (output / "test_composition.jsonl").read_text(encoding="utf-8")
-            self.assertIn("train_", train)
-            self.assertNotIn("test_composition_", train)
-            self.assertIn("test_composition_", test)
+            self.assertIn("entity_e100000000_", train)
+            self.assertNotIn("entity_e200000000_", train)
+            self.assertIn("entity_e200000000_", test)
             self.assertNotIn('"template_family":"D"', train)
 
 

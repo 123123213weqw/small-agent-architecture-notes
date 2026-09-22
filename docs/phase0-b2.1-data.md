@@ -49,14 +49,14 @@ source
 - E：未在训练模板中使用的表达，用于语义压力测试；
 - 长度外推使用 D，长度为 96 或 128。
 
-动态实体统一加 split 命名空间，例如：
+动态实体统一加 episode 唯一的中性命名空间，例如：
 
 ```text
-train_state_123
-test_composition_state_123
+entity_e100000000_state_123
+entity_e400000000_state_123
 ```
 
-生成器会检查任意两个 split 之间不存在 episode ID 或动态实体交集。
+所有 split 使用完全相同的 `entity_e...` 词法格式，避免把 split 名称造成的语言分布变化误认为模板泛化。生成器仍会检查任意两个 split 之间不存在 episode ID 或动态实体交集。
 
 ## 查询可见性
 
