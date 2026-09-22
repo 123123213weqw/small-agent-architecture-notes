@@ -27,7 +27,7 @@
 ## 冻结的核心
 
 $$
-\mathcal R_t=M_t\cup\{c_t\}
+\mathcal R_t=M_t\cup\lbrace c_t\rbrace
 $$
 
 $$
@@ -45,7 +45,7 @@ $$
 $$
 M_{t+1} =
 \mathcal R_t\setminus
-\left\{\arg\min_i\hat u_{t,i}\right\}
+\left\lbrace \arg\min_i\hat u_{t,i}\right\rbrace
 $$
 
 最后一式只在 $|\mathcal R_t|\gt S$ 时执行。
@@ -71,7 +71,8 @@ $$
 
 - 行内公式用 `$...$`，独立公式用单独的 `$$` 行包围；`\[...\]` 和 `\(...\)` 在 GitHub 上不渲染；
 - 独立公式内不要出现只有 `=` 或 `-` 的行，否则会被 Markdown 当成标题解析；
-- 公式内的大小比较写 `\lt`、`\gt`，避免 `<`、`>` 被转义。
+- 公式内的大小比较写 `\lt`、`\gt`，避免 `<`、`>` 被转义；
+- 公式里的花括号写 `\lbrace`、`\rbrace`，因为 `\{`、`\}` 的反斜杠会被 Markdown 吃掉。
 
 ## 原则
 

@@ -28,7 +28,7 @@
 
 - 状态：已接受为最小实验原型，不代表最终 1B 架构已确定。
 - 决策：长期记忆采用不可变事件记录、固定延迟、单候选进入、反事实未来效用监督和单次最低效用淘汰。
-- 核心：每次令 $\mathcal R_t=M_t\cup\{c_t\}$；容量超限时删除 $\arg\min_i\hat u_{t,i}$。
+- 核心：每次令 $\mathcal R_t=M_t\cup\lbrace c_t\rbrace$；容量超限时删除 $\arg\min_i\hat u_{t,i}$。
 - 训练：效用标签只评估决策之后的未来区间；Hard eviction 不要求对离散选择反向传播。
 - 明确排除：第一版不加入显式衰减、年龄、occupancy、新奇度、冲突门、关联图、soft write 或记忆合并。
 - 规范：[效用巩固记忆 v1](utility-consolidation-memory-v1.md)。

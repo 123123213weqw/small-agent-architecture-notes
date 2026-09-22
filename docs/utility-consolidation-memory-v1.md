@@ -40,7 +40,7 @@
 
 $$
 \boxed{
-\mathcal R_t=M_t\cup\{c_t\}
+\mathcal R_t=M_t\cup\lbrace c_t\rbrace
 }
 $$
 
@@ -142,9 +142,9 @@ $$
 M_{t+1} =
 \mathcal R_t
 \setminus
-\left\{
+\left\lbrace 
 \arg\min_i\hat u_{t,i}
-\right\}
+\right\rbrace
 }
 $$
 
@@ -156,7 +156,7 @@ $$
 \mathcal L_{\bar\theta,F}
 \left(
 Y_t\mid B_t,
-\mathcal R_t\setminus\{m_i\}
+\mathcal R_t\setminus\lbrace m_i\rbrace
 \right),
 $$
 

@@ -46,7 +46,7 @@
 每次只有一个候选进入长期记忆竞争：
 
 $$
-\mathcal R_t=M_t\cup\{c_t\}.
+\mathcal R_t=M_t\cup\lbrace c_t\rbrace.
 $$
 
 训练期使用决策之后的反事实未来损失生成效用标签：
@@ -70,7 +70,7 @@ $$
 $$
 M_{t+1} =
 \mathcal R_t\setminus
-\left\{\arg\min_i\hat u_{t,i}\right\}.
+\left\lbrace \arg\min_i\hat u_{t,i}\right\rbrace.
 $$
 
 完整定义见 [效用巩固记忆 v1](utility-consolidation-memory-v1.md)。
