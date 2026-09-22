@@ -54,7 +54,7 @@ $$
 $$
 u_{t,i} =
 \mathcal L_{\bar\theta,F}
-\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right) -
+\left(Y_t\mid B_t,\mathrm{mask}_i(\mathcal R_t)\right) -
 \mathcal L_{\bar\theta,F}
 \left(Y_t\mid B_t,\mathcal R_t\right).
 $$
@@ -233,8 +233,8 @@ $$
 不直接比较 perplexity，统一使用 Bits Per Byte：
 
 $$
-\operatorname{BPB} =
-\frac{\operatorname{NLL}}
+\mathrm{BPB} =
+\frac{\mathrm{NLL}}
 {N_{\mathrm{bytes}}\ln2}.
 $$
 

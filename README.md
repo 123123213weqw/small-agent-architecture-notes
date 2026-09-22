@@ -33,7 +33,7 @@ $$
 $$
 u_{t,i} =
 \mathcal L_{\bar\theta,F}
-\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right) -
+\left(Y_t\mid B_t,\mathrm{mask}_i(\mathcal R_t)\right) -
 \mathcal L_{\bar\theta,F}
 \left(Y_t\mid B_t,\mathcal R_t\right)
 $$
@@ -72,7 +72,8 @@ $$
 - 行内公式用 `$...$`，独立公式用单独的 `$$` 行包围；`\[...\]` 和 `\(...\)` 在 GitHub 上不渲染；
 - 独立公式内不要出现只有 `=` 或 `-` 的行，否则会被 Markdown 当成标题解析；
 - 公式内的大小比较写 `\lt`、`\gt`，避免 `<`、`>` 被转义；
-- 公式里的花括号写 `\lbrace`、`\rbrace`，因为 `\{`、`\}` 的反斜杠会被 Markdown 吃掉。
+- 公式里的花括号写 `\lbrace`、`\rbrace`，因为 `\{`、`\}` 的反斜杠会被 Markdown 吃掉；
+- 算子名写 `\mathrm{...}`，不要用 `\operatorname{...}`：GitHub 的宏白名单不含它，页面会显示红框 `The following macros are not allowed: operatorname`。
 
 ## 原则
 

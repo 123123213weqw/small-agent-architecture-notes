@@ -61,7 +61,7 @@ $$
 u_{t,i} =
 \mathcal L_{\bar\theta,F}
 \left(
-Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)
+Y_t\mid B_t,\mathrm{mask}_i(\mathcal R_t)
 \right) -
 \mathcal L_{\bar\theta,F}
 \left(
@@ -70,7 +70,7 @@ Y_t\mid B_t,\mathcal R_t
 }
 $$
 
-其中 $\operatorname{mask}_i$ 只改变记录 $m_i$ 的可见性，不重排其他记录的位置。解释如下：
+其中 $\mathrm{mask}_i$ 只改变记录 $m_i$ 的可见性，不重排其他记录的位置。解释如下：
 
 - $u_{t,i}\gt 0$：删除 $m_i$ 增加未来损失，应倾向保留；
 - $u_{t,i}\approx0$：删除基本无影响；
@@ -105,7 +105,7 @@ $$
 \sum_i
 \left(
 \hat u_{t,i}
--\operatorname{stopgrad}(u_{t,i})
+-\mathrm{stopgrad}(u_{t,i})
 \right)^2
 }
 $$
@@ -174,7 +174,7 @@ $$
 \boxed{
 H' =
 H+
-\operatorname{softmax}
+\mathrm{softmax}
 \left(
 \frac{QK^\top}{\sqrt{d_m}}
 \right)
