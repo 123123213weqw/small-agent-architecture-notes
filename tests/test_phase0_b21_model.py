@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 
 from experiments.phase0_b21_model import GroupCollator, UtilitySetModel, parameter_count, utility_losses
+from experiments.phase0_b21_train import resolve_seed_config
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,6 +46,19 @@ def group(count: int = 5) -> dict:
 
 
 class Phase0B21ModelTests(unittest.TestCase):
+    def test_seed_roles_are_separated_with_legacy_fallback(self):
+        legacy = resolve_seed_config({"seed": 7})
+        self.assertEqual(legacy["model_seed"], 7)
+        self.assertEqual(legacy["data_seed"], 7)
+        self.assertEqual(legacy["evaluation_seed"], 7)
+
+        paired = resolve_seed_config(
+            {"seed": 2, "model_seed": 2, "data_seed": 0, "evaluation_seed": 0}
+        )
+        self.assertEqual(paired["model_seed"], 2)
+        self.assertEqual(paired["data_seed"], 0)
+        self.assertEqual(paired["evaluation_seed"], 0)
+
     def test_collator_pads_variable_sets(self):
         batch = GroupCollator("joint", record_bytes=32, context_bytes=48)([group(5), group(9)])
         self.assertEqual(tuple(batch["record_ids"].shape), (2, 9, 32))

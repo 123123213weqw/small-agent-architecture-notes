@@ -76,6 +76,17 @@ def seed_everything(seed: int) -> None:
         torch.backends.cudnn.allow_tf32 = True
 
 
+def resolve_seed_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Separate optimization randomness from frozen data/evaluation sampling."""
+    legacy = int(config.get("seed", 0))
+    return {
+        **config,
+        "model_seed": int(config.get("model_seed", legacy)),
+        "data_seed": int(config.get("data_seed", legacy)),
+        "evaluation_seed": int(config.get("evaluation_seed", legacy)),
+    }
+
+
 def collator_for(config: dict[str, Any]) -> GroupCollator:
     return GroupCollator(
         config["architecture"],
@@ -92,7 +103,7 @@ def loader_for(
     shuffle: bool,
     batch_size: int | None = None,
 ) -> DataLoader:
-    generator = torch.Generator().manual_seed(int(config["seed"]))
+    generator = torch.Generator().manual_seed(int(config["model_seed"]))
     return DataLoader(
         dataset,
         batch_size=batch_size or int(config["batch_size"]),
@@ -382,7 +393,9 @@ def evaluate_rollout(
     device: torch.device,
     maximum_episodes: int | None = None,
 ) -> tuple[list[dict[str, object]], list[dict[str, Any]], dict[str, float]]:
-    prepared = materialize_split_episodes("stage1", int(config["seed"]), split)
+    prepared = materialize_split_episodes(
+        "stage1", int(config["evaluation_seed"]), split
+    )
     if maximum_episodes is not None:
         prepared = prepared[:maximum_episodes]
     states = [
@@ -507,7 +520,7 @@ def main() -> None:
     parser.add_argument("--no-tensorboard", action="store_true")
     args = parser.parse_args()
 
-    config = load_config(args.config)
+    config = resolve_seed_config(load_config(args.config))
     if args.smoke:
         config = {
             **config,
@@ -520,11 +533,19 @@ def main() -> None:
             "maximum_test_groups": 96,
             "maximum_rollout_episodes": 12,
         }
-    seed_everything(int(config["seed"]))
+    seed_everything(int(config["model_seed"]))
     if not torch.cuda.is_available():
         raise RuntimeError("B2.1 training requires CUDA")
     device = torch.device("cuda")
     args.output.mkdir(parents=True, exist_ok=True)
+    manifest_path = args.data_dir / "manifest.json"
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_seed = int(manifest["seed"])
+        if manifest_seed != int(config["data_seed"]):
+            raise ValueError(
+                f"data seed mismatch: config={config['data_seed']} manifest={manifest_seed}"
+            )
     (args.output / "config.resolved.json").write_text(
         json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8"
     )

@@ -76,6 +76,7 @@ $$
 - [Phase 0B2.1 数据生成与审计](docs/phase0-b2.1-data.md)
 - [Phase 0B2.1 第一阶段执行说明](docs/phase0-b2.1-execution.md)
 - [Phase 0B2.1 第一阶段实验结果](results/phase0_b21_stage1/RESULTS.md)
+- [Phase 0B2.1 A/C 多种子确认计划](docs/phase0-b2.1-ac-seed-plan.md)
 - [实验可视化：TensorBoard 与记忆淘汰查看器](docs/visualization.md)
 - [后续任务清单](TODO.md)
 - [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)
