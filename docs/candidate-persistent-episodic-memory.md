@@ -23,21 +23,21 @@
 
 若所有槽初始化相同，则：
 
-\[
+$$
 p_i^{\mathrm{match}}=p_i^{\mathrm{replace}}=\frac1S,
-\]
+$$
 
 从而：
 
-\[
+$$
 \omega_i=\frac{g_e^w}{S}.
-\]
+$$
 
-所有槽得到相同更新，槽相等状态成为更新方程的不变子空间。经过 \(E\) 次均匀写入，occupancy 可能显示：
+所有槽得到相同更新，槽相等状态成为更新方程的不变子空间。经过 $E$ 次均匀写入，occupancy 可能显示：
 
-\[
+$$
 o_i^{(E)}=1-\left(1-\frac1S\right)^E,
-\]
+$$
 
 但所有槽内容仍可能完全相同。因此 occupancy 不能证明系统形成了不同记忆。
 
@@ -71,7 +71,7 @@ o_i^{(E)}=1-\left(1-\frac1S\right)^E,
 
 ## 4. 当前替代方案
 
-\[
+$$
 \boxed{
 \text{Future removal cost}
 \longrightarrow
@@ -79,6 +79,6 @@ o_i^{(E)}=1-\left(1-\frac1S\right)^E,
 \longrightarrow
 \text{Budgeted single eviction}
 }
-\]
+$$
 
 详见 [效用巩固记忆 v1](utility-consolidation-memory-v1.md)。

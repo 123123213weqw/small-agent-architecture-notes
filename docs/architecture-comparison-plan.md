@@ -45,36 +45,33 @@
 
 每次只有一个候选进入长期记忆竞争：
 
-\[
+$$
 \mathcal R_t=M_t\cup\{c_t\}.
-\]
+$$
 
 训练期使用决策之后的反事实未来损失生成效用标签：
 
-\[
-u_{t,i}
-=
+$$
+u_{t,i} =
 \mathcal L_{\bar\theta,F}
-\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right)
--
+\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right) -
 \mathcal L_{\bar\theta,F}
 \left(Y_t\mid B_t,\mathcal R_t\right).
-\]
+$$
 
 预测器只能使用决策时已经观察到的信息：
 
-\[
+$$
 \hat u_{t,i}=f_\phi(m_i,g_t,B_t,\mathcal R_t).
-\]
+$$
 
 容量超限时只淘汰预测效用最低的一条：
 
-\[
-M_{t+1}
-=
+$$
+M_{t+1} =
 \mathcal R_t\setminus
 \left\{\arg\min_i\hat u_{t,i}\right\}.
-\]
+$$
 
 完整定义见 [效用巩固记忆 v1](utility-consolidation-memory-v1.md)。
 
@@ -103,8 +100,8 @@ M_{t+1}
 
 - 主干使用 Full/Local Attention、线性注意力或混合结构；
 - 层数、hidden size、FFN 宽度和记忆读取层位置；
-- 局部窗口 \(W\)；
-- 长期容量 \(S\)、等待期 \(D\) 和监督区间 \(F\)；
+- 局部窗口 $W$；
+- 长期容量 $S$、等待期 $D$ 和监督区间 $F$；
 - 事件记录粒度、编码维度和原文保留方式；
 - Utility Predictor 的具体实现；
 - 位置编码、Tokenizer、数据混合和训练 token。
@@ -143,9 +140,9 @@ RWKV-7 使用广义 Delta Rule 和向量门控维护固定递归状态，是连�
 
 KDA 的核心状态更新可概括为：
 
-\[
+$$
 S_t=(D_t-a_tb_t^\top)S_{t-1}+k_tv_t^\top.
-\]
+$$
 
 它用于比较连续矩阵状态、混合 Full Attention 和离散事件保留之间的质量与效率差异。参考：[Kimi Linear](https://arxiv.org/abs/2510.26692)。
 
@@ -188,15 +185,15 @@ Kimi K3 是 KDA、Gated MLA、Attention Residuals 和 Stable LatentMoE 的大规
 
 全上下文 Transformer 的 KV 状态随总长度增长：
 
-\[
+$$
 O(Td).
-\]
+$$
 
-本项目使用局部窗口 \(W\) 和长期容量 \(S\)：
+本项目使用局部窗口 $W$ 和长期容量 $S$：
 
-\[
+$$
 O((W+S)d).
-\]
+$$
 
 相对滑动窗口的差异不是状态是否有界，而是旧记录按预测未来价值而不是纯时间顺序淘汰。
 
@@ -222,12 +219,12 @@ O((W+S)d).
 
 受控模型匹配总参数、非 Embedding 参数或训练 FLOPs，并完整报告其他项。状态预算必须包括：
 
-\[
+$$
 \text{local KV}
 +\text{short-term buffer}
 +\text{long-term records}
 +\text{metadata}.
-\]
+$$
 
 如果短期缓冲完全包含在局部窗口中，应明确说明，避免重复计算。
 
@@ -235,12 +232,11 @@ O((W+S)d).
 
 不直接比较 perplexity，统一使用 Bits Per Byte：
 
-\[
-\operatorname{BPB}
-=
+$$
+\operatorname{BPB} =
 \frac{\operatorname{NLL}}
 {N_{\mathrm{bytes}}\ln2}.
-\]
+$$
 
 分别报告中文、英文、代码、数学和 API/JSON BPB。
 
@@ -262,7 +258,7 @@ O((W+S)d).
 - 多次状态覆盖后的最新值正确率；
 - 旧状态误用率；
 - 无关工具输出增加时的性能下降；
-- 不同依赖距离 \(D,F\) 下的召回；
+- 不同依赖距离 $D,F$ 下的召回；
 - 记录淘汰准确率；
 - Utility Predictor 与 Oracle 的排序相关性；
 - 预测策略相对 Oracle 的选择 regret；
@@ -384,7 +380,7 @@ max_tool_output_chars: 12000
 
 - 完整主干序列混合结构；
 - 深度、宽度和记忆读取层位置；
-- \(W,S,D,F\)；
+- $W,S,D,F$；
 - 事件记录编码；
 - 标签采样率和教师更新日程；
 - Tokenizer、数据混合和最终训练 token。

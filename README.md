@@ -26,32 +26,29 @@
 
 ## 冻结的核心
 
-\[
+$$
 \mathcal R_t=M_t\cup\{c_t\}
-\]
+$$
 
-\[
-u_{t,i}
-=
+$$
+u_{t,i} =
 \mathcal L_{\bar\theta,F}
-\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right)
--
+\left(Y_t\mid B_t,\operatorname{mask}_i(\mathcal R_t)\right) -
 \mathcal L_{\bar\theta,F}
 \left(Y_t\mid B_t,\mathcal R_t\right)
-\]
+$$
 
-\[
+$$
 \hat u_{t,i}=f_\phi(m_i,g_t,B_t,\mathcal R_t)
-\]
+$$
 
-\[
-M_{t+1}
-=
+$$
+M_{t+1} =
 \mathcal R_t\setminus
 \left\{\arg\min_i\hat u_{t,i}\right\}
-\]
+$$
 
-最后一式只在 \(|\mathcal R_t|>S\) 时执行。
+最后一式只在 $|\mathcal R_t|\gt S$ 时执行。
 
 ## 对比模型
 
@@ -69,6 +66,12 @@ M_{t+1}
 - [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
 - [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)
 - [决策记录](docs/decisions.md)
+
+## 公式书写约定
+
+- 行内公式用 `$...$`，独立公式用单独的 `$$` 行包围；`\[...\]` 和 `\(...\)` 在 GitHub 上不渲染；
+- 独立公式内不要出现只有 `=` 或 `-` 的行，否则会被 Markdown 当成标题解析；
+- 公式内的大小比较写 `\lt`、`\gt`，避免 `<`、`>` 被转义。
 
 ## 原则
 
