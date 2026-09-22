@@ -124,6 +124,17 @@ class SplitSpec:
     template_families: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class PreparedEpisode:
+    episode: Episode
+    capacity: int
+    hard_negative_count: int
+    template_family: str
+    behavior_policy: str
+    renderer: B21Renderer
+    query_visibility: str
+
+
 def _sha256_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
@@ -266,6 +277,64 @@ def _sample_groups(groups: Sequence[dict[str, Any]], maximum: int) -> list[dict[
     return [groups[index] for index in indices]
 
 
+def make_decision_group(
+    episode: Episode,
+    competing: Sequence[Record],
+    candidate: Record,
+    *,
+    split: str,
+    capacity: int,
+    hard_negative_count: int,
+    template_family: str,
+    behavior_policy: str,
+    decision_id: int,
+    renderer: B21Renderer | None = None,
+) -> dict[str, Any]:
+    """Serialize one already-observed competition set plus training labels."""
+    renderer = renderer or B21Renderer(template_family, split)
+    goal, query_visibility = renderer.goal(episode)
+    utilities_by_uid = counterfactual_utilities(episode, competing, candidate.position)
+    utilities = [float(utilities_by_uid[item.uid]) for item in competing]
+    minimum = min(utilities)
+    oracle_indices = [i for i, value in enumerate(utilities) if math.isclose(value, minimum)]
+    recent_records = [item for item in episode.records if item.position < candidate.position][-2:]
+    records = [
+        {
+            "uid": item.uid,
+            "text": renderer.record(item),
+            "event_index": item.position,
+            "relative_age": candidate.position - item.position,
+            "is_candidate": item.uid == candidate.uid,
+            "source": record_source(item),
+        }
+        for item in competing
+    ]
+    group: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "split": split,
+        "episode_id": episode.eid,
+        "decision_id": decision_id,
+        "decision_position": candidate.position,
+        "task": episode.task,
+        "query_visibility": query_visibility,
+        "template_family": template_family,
+        "capacity": capacity,
+        "hard_negative_count": hard_negative_count,
+        "behavior_policy": behavior_policy,
+        "goal": goal,
+        "recent_context": [
+            {"text": renderer.record(item), "event_index": item.position}
+            for item in recent_records
+        ],
+        "records": records,
+        "candidate_index": len(records) - 1,
+        "utilities": utilities,
+        "oracle_eviction_indices": oracle_indices,
+    }
+    group["input_sha256"] = _sha256_bytes(_json_line(group_model_input(group)).encode("utf-8"))
+    return group
+
+
 def collect_episode_groups(
     episode: Episode,
     *,
@@ -280,7 +349,6 @@ def collect_episode_groups(
     """Roll out one behavior policy and return sampled complete decisions."""
     episode = harden_episode(episode, seed + 17, count=hard_negative_count)
     renderer = B21Renderer(template_family, split)
-    goal, query_visibility = renderer.goal(episode)
     rng = random.Random(seed)
     memory: list[Record] = []
     all_groups: list[dict[str, Any]] = []
@@ -293,47 +361,23 @@ def collect_episode_groups(
             continue
 
         decision += 1
-        utilities_by_uid = counterfactual_utilities(episode, competing, candidate.position)
-        utilities = [float(utilities_by_uid[item.uid]) for item in competing]
-        minimum = min(utilities)
-        oracle_indices = [i for i, value in enumerate(utilities) if math.isclose(value, minimum)]
-        recent_records = [item for item in episode.records if item.position < candidate.position][-2:]
-        records = [
-            {
-                "uid": item.uid,
-                "text": renderer.record(item),
-                "event_index": item.position,
-                "relative_age": candidate.position - item.position,
-                "is_candidate": item.uid == candidate.uid,
-                "source": record_source(item),
-            }
-            for item in competing
-        ]
-        group: dict[str, Any] = {
-            "schema_version": SCHEMA_VERSION,
-            "split": split,
-            "episode_id": episode.eid,
-            "decision_id": decision,
-            "decision_position": candidate.position,
-            "task": episode.task,
-            "query_visibility": query_visibility,
-            "template_family": template_family,
-            "capacity": capacity,
-            "hard_negative_count": hard_negative_count,
-            "behavior_policy": behavior_policy,
-            "goal": goal,
-            "recent_context": [
-                {"text": renderer.record(item), "event_index": item.position}
-                for item in recent_records
-            ],
-            "records": records,
-            "candidate_index": len(records) - 1,
-            "utilities": utilities,
-            "oracle_eviction_indices": oracle_indices,
-        }
-        group["input_sha256"] = _sha256_bytes(_json_line(group_model_input(group)).encode("utf-8"))
+        group = make_decision_group(
+            episode,
+            competing,
+            candidate,
+            split=split,
+            capacity=capacity,
+            hard_negative_count=hard_negative_count,
+            template_family=template_family,
+            behavior_policy=behavior_policy,
+            decision_id=decision,
+            renderer=renderer,
+        )
         all_groups.append(group)
 
+        utilities_by_uid = {
+            item.uid: float(group["utilities"][i]) for i, item in enumerate(competing)
+        }
         eviction = _choose_eviction(behavior_policy, competing, utilities_by_uid, rng)
         memory = [item for i, item in enumerate(competing) if i != eviction]
 
@@ -403,6 +447,40 @@ def _assignment(index: int, spec: SplitSpec) -> tuple[int, int, str, str]:
     family = spec.template_families[(task_index + occurrence) % len(spec.template_families)]
     behavior = BEHAVIOR_POLICIES[(task_index + occurrence) % len(BEHAVIOR_POLICIES)]
     return capacity, hard_negative_count, family, behavior
+
+
+def materialize_split_episodes(preset: str, seed: int, split_name: str) -> list[PreparedEpisode]:
+    """Recreate exactly the episodes used by a serialized dataset split."""
+    specs = _split_specs(preset)
+    matches = [(index, spec) for index, spec in enumerate(specs) if spec.name == split_name]
+    if not matches:
+        raise KeyError(split_name)
+    split_index, spec = matches[0]
+    episodes = make_episodes(
+        spec.episodes,
+        spec.lengths,
+        seed=seed + 10_000 * (split_index + 1),
+        start_index=(split_index + 1) * 100_000_000,
+    )
+    prepared: list[PreparedEpisode] = []
+    for i, episode in enumerate(episodes):
+        capacity, hard_count, family, behavior = _assignment(i, spec)
+        episode_seed = seed * 1_000_003 + split_index * 100_003 + i
+        hardened = harden_episode(episode, episode_seed + 17, count=hard_count)
+        renderer = B21Renderer(family, split_name)
+        _, visibility = renderer.goal(hardened)
+        prepared.append(
+            PreparedEpisode(
+                episode=hardened,
+                capacity=capacity,
+                hard_negative_count=hard_count,
+                template_family=family,
+                behavior_policy=behavior,
+                renderer=renderer,
+                query_visibility=visibility,
+            )
+        )
+    return prepared
 
 
 def _write_jsonl(path: Path, groups: Iterable[dict[str, Any]]) -> int:

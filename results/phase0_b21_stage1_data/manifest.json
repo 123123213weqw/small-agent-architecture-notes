@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generator": "experiments/phase0_b21_data.py",
-  "generator_sha256": "5cb12ab14376ba8a44dc75cdbc1519a56375b0d9b845f18021102080dca363d1",
+  "generator_sha256": "2eec608906670b49e77e9113fab67406d66e1868b810ae11d38460642dbba05a",
   "preset": "stage1",
   "seed": 0,
   "max_decision_groups_per_episode": 12,
