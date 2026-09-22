@@ -80,6 +80,32 @@ HIDDEN_GOALS: dict[str, str] = {
     "E": "尚不知道最终会询问什么，请暂存必要线索。",
 }
 
+# Relation-only training variants.  None duplicates the frozen D/E evaluation
+# sentence.  Non-relation records in the same episode still use A/B/C through
+# the variant's base family, so total data volume and the other five tasks stay
+# unchanged.
+RELATION_AUG_EDGE_TEMPLATES: tuple[str, ...] = (
+    "{a} 指向节点 {b}。",
+    "从节点 {a} 可直接走到 {b}。",
+    "{b} 是 {a} 的后继节点。",
+    "有向边的起点为 {a}，终点为 {b}。",
+    "工具 {a} 的输出交给 {b}。",
+    "路径片段写作 {a} -> {b}。",
+    "连接记录显示 {a} 通往 {b}。",
+    "{a} 后面紧接节点 {b}。",
+)
+
+RELATION_AUG_GOAL_TEMPLATES: tuple[str, ...] = (
+    "判断 {tokens} 中的两个端点是否存在路径。",
+    "沿已有关系边检查 {tokens} 能否互相到达。",
+    "根据连接记录推导 {tokens} 之间的通路。",
+    "确认从 {tokens} 的一个端点能否走到另一个端点。",
+    "组合现有边，回答关于 {tokens} 的连通问题。",
+    "追踪中间节点并判断 {tokens} 是否可达。",
+    "利用路径片段核对 {tokens} 的连接关系。",
+    "检查关系图中 {tokens} 对应端点之间是否有链路。",
+)
+
 # These are task vocabulary, not episode-specific entities.
 FIXED_TOKENS = {
     "remember_for_possible_followup",
@@ -161,10 +187,21 @@ class B21Renderer:
     """Render one template family with an episode-unique neutral namespace."""
 
     def __init__(self, family: str, namespace: str):
-        if family not in {"A", "B", "C", "D", "E"}:
+        relation_variant: int | None = None
+        if family.startswith("R") and family[1:].isdigit():
+            relation_variant = int(family[1:])
+            if relation_variant >= len(RELATION_AUG_EDGE_TEMPLATES):
+                raise ValueError(f"unknown relation template family: {family}")
+        elif family not in {"A", "B", "C", "D", "E"}:
             raise ValueError(f"unknown template family: {family}")
         self.family = family
         self.namespace = namespace
+        self.relation_variant = relation_variant
+        self.base_family = (
+            ("A", "B", "C")[relation_variant % 3]
+            if relation_variant is not None
+            else family
+        )
 
     def entity(self, token: str) -> str:
         return f"{self.namespace}_{token}" if _dynamic_token(token) else token
@@ -188,13 +225,15 @@ class B21Renderer:
         return record.kind
 
     def _template(self, key: str) -> str:
-        if self.family == "A":
+        if key == "edge" and self.relation_variant is not None:
+            return RELATION_AUG_EDGE_TEMPLATES[self.relation_variant]
+        if self.base_family == "A":
             return TRAIN_TEMPLATES[key][0]
-        if self.family == "B":
+        if self.base_family == "B":
             return TRAIN_TEMPLATES[key][1]
-        if self.family == "C":
+        if self.base_family == "C":
             return PARAPHRASE_TEMPLATES[key][0]
-        if self.family == "E":
+        if self.base_family == "E":
             return PARAPHRASE_TEMPLATES[key][1]
         return COMPOSITION_TEMPLATES[key]
 
@@ -208,15 +247,17 @@ class B21Renderer:
     def goal(self, episode: Episode) -> tuple[str, str]:
         hidden = episode.task == "delayed_query" and "remember_for_possible_followup" in episode.goal_tokens
         if hidden:
-            return HIDDEN_GOALS[self.family], "hidden_query"
+            return HIDDEN_GOALS[self.base_family], "hidden_query"
         tokens = "、".join(sorted(self.entity(token) for token in episode.goal_tokens))
-        if self.family == "A":
+        if episode.task == "relation_chain" and self.relation_variant is not None:
+            template = RELATION_AUG_GOAL_TEMPLATES[self.relation_variant]
+        elif self.base_family == "A":
             template = TRAIN_GOALS[episode.task][0]
-        elif self.family == "B":
+        elif self.base_family == "B":
             template = TRAIN_GOALS[episode.task][1]
-        elif self.family == "C":
+        elif self.base_family == "C":
             template = PARAPHRASE_GOALS[episode.task][0]
-        elif self.family == "E":
+        elif self.base_family == "E":
             template = PARAPHRASE_GOALS[episode.task][1]
         else:
             template = COMPOSITION_GOALS[episode.task]
@@ -423,9 +464,10 @@ def validate_group(group: dict[str, Any]) -> list[str]:
 
 
 def _split_specs(preset: str) -> tuple[SplitSpec, ...]:
-    if preset == "audit":
+    base_preset = preset.removesuffix("_relation_aug")
+    if base_preset == "audit":
         train, validation, test = 100, 24, 24
-    elif preset == "stage1":
+    elif base_preset == "stage1":
         train, validation, test = 3000, 400, 600
     else:
         raise ValueError(preset)
@@ -439,12 +481,19 @@ def _split_specs(preset: str) -> tuple[SplitSpec, ...]:
     )
 
 
-def _assignment(index: int, spec: SplitSpec) -> tuple[int, int, str, str]:
+def _assignment(
+    index: int,
+    spec: SplitSpec,
+    *,
+    relation_augmented: bool = False,
+) -> tuple[int, int, str, str]:
     task_index = index % len(TASKS)
     occurrence = index // len(TASKS)
     capacity = CAPACITIES[(task_index + occurrence) % len(CAPACITIES)]
     hard_negative_count = HARD_NEGATIVES[(task_index + 2 * occurrence) % len(HARD_NEGATIVES)]
     family = spec.template_families[(task_index + occurrence) % len(spec.template_families)]
+    if relation_augmented and spec.name in {"train", "validation"} and TASKS[task_index] == "relation_chain":
+        family = f"R{occurrence % len(RELATION_AUG_EDGE_TEMPLATES)}"
     behavior = BEHAVIOR_POLICIES[(task_index + occurrence) % len(BEHAVIOR_POLICIES)]
     return capacity, hard_negative_count, family, behavior
 
@@ -464,7 +513,9 @@ def materialize_split_episodes(preset: str, seed: int, split_name: str) -> list[
     )
     prepared: list[PreparedEpisode] = []
     for i, episode in enumerate(episodes):
-        capacity, hard_count, family, behavior = _assignment(i, spec)
+        capacity, hard_count, family, behavior = _assignment(
+            i, spec, relation_augmented=preset.endswith("_relation_aug")
+        )
         episode_seed = seed * 1_000_003 + split_index * 100_003 + i
         hardened = harden_episode(episode, episode_seed + 17, count=hard_count)
         renderer = B21Renderer(family, f"entity_{hardened.eid}")
@@ -524,7 +575,11 @@ def build_dataset(
         "capacities": list(CAPACITIES),
         "hard_negative_counts": list(HARD_NEGATIVES),
         "tasks": list(TASKS),
-        "training_template_families": ["A", "B", "C"],
+        "training_template_families": (
+            ["A", "B", "C", *[f"R{i}" for i in range(len(RELATION_AUG_EDGE_TEMPLATES))]]
+            if preset.endswith("_relation_aug")
+            else ["A", "B", "C"]
+        ),
         "composition_template_family": "D",
         "composition_unseen_characters": unseen,
         "semantic_stress_template_family": "E",
@@ -554,7 +609,9 @@ def build_dataset(
         oracle_tie_total = 0
 
         for i, episode in enumerate(episodes):
-            capacity, hard_count, family, behavior = _assignment(i, spec)
+            capacity, hard_count, family, behavior = _assignment(
+                i, spec, relation_augmented=preset.endswith("_relation_aug")
+            )
             episode_groups, episode_entities = collect_episode_groups(
                 episode,
                 split=spec.name,
@@ -655,7 +712,11 @@ def write_audit_report(output: Path, manifest: dict[str, Any]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("data/b2_1_stage1_audit"))
-    parser.add_argument("--preset", choices=("audit", "stage1"), default="audit")
+    parser.add_argument(
+        "--preset",
+        choices=("audit", "stage1", "audit_relation_aug", "stage1_relation_aug"),
+        default="audit",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()

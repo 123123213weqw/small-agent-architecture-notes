@@ -6,7 +6,10 @@ from pathlib import Path
 
 from experiments.phase0_ab import make_episode
 from experiments.phase0_b21_data import (
+    COMPOSITION_TEMPLATES,
     FORBIDDEN_INPUT_FIELDS,
+    PARAPHRASE_TEMPLATES,
+    RELATION_AUG_EDGE_TEMPLATES,
     SplitSpec,
     build_dataset,
     collect_episode_groups,
@@ -17,6 +20,37 @@ from experiments.phase0_b21_data import (
 
 
 class Phase0B21DataTests(unittest.TestCase):
+    def test_relation_augmentation_keeps_frozen_tests_and_volume(self):
+        specs = (
+            SplitSpec("train", 12, (32,), ("A", "B", "C")),
+            SplitSpec("validation", 12, (32,), ("A", "B", "C")),
+            SplitSpec("test_composition", 12, (32,), ("D",)),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = build_dataset(root / "baseline", "audit", seed=0, specs=specs)
+            augmented = build_dataset(
+                root / "augmented", "audit_relation_aug", seed=0, specs=specs
+            )
+            self.assertEqual(
+                baseline["splits"]["train"]["decisions"],
+                augmented["splits"]["train"]["decisions"],
+            )
+            self.assertEqual(
+                baseline["splits"]["test_composition"]["sha256"],
+                augmented["splits"]["test_composition"]["sha256"],
+            )
+            relation_families = {
+                key
+                for key in augmented["splits"]["train"]["template_counts"]
+                if key.startswith("R")
+            }
+            self.assertTrue(relation_families)
+
+    def test_relation_augmentation_does_not_copy_frozen_edge_templates(self):
+        frozen = {COMPOSITION_TEMPLATES["edge"], PARAPHRASE_TEMPLATES["edge"][1]}
+        self.assertTrue(frozen.isdisjoint(RELATION_AUG_EDGE_TEMPLATES))
+
     def test_composition_family_uses_seen_character_vocabulary(self):
         self.assertEqual(composition_unseen_characters(), {})
 
