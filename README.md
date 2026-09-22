@@ -24,6 +24,8 @@
 
 第一轮符号实验中，Oracle−FIFO 成功率差距在同分布测试为 $0.895\pm0.012$，长度外推测试为 $0.948\pm0.014$；预测器分别恢复 93.6% 和 92.3% 的差距。这个结果只证明结构化符号环境中的可行性和可学习性，不代表自然语言 Reader 已经验证通过。
 
+Phase 0B2 已开始验证纯文本效用预测。首个 4.97M 参数实验在同模板测试恢复 99.1% 的 Oracle−FIFO 差距，但在未见释义和“未见释义 + 长度外推”上只恢复 23.8% 和 31.0%，因此 B2 当前未通过，暂不进入 20M–50M Reader。
+
 第一版明确不加入显式衰减、年龄、occupancy、新奇度、冲突门、关联图、soft write 或记忆合并。
 
 ## 冻结的核心
@@ -67,6 +69,7 @@ $$
 - [架构与横向比较方案](docs/architecture-comparison-plan.md)
 - [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
 - [Phase 0A/0B：符号验证方案](docs/phase0-ab-validation.md)
+- [Phase 0B2：从文本预测记忆效用](docs/phase0-b2-text.md)
 - [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)
 - [决策记录](docs/decisions.md)
 
@@ -91,6 +94,14 @@ python3 experiments/phase0_ab.py --output results/phase0_ab
 `Future Oracle` 只作为上界和标签生成器；`Predicted Utility` 的特征不包含未来记录或最终答案。
 
 已记录的首次运行结果见 [`results/phase0_ab/RESULTS.md`](results/phase0_ab/RESULTS.md)。
+
+纯文本 B2 实验：
+
+```bash
+python3 experiments/phase0_b2_text.py --output results/phase0_b2_text_seed0
+```
+
+首个 Seed 0 结果见 [`results/phase0_b2_text_seed0/RESULTS.md`](results/phase0_b2_text_seed0/RESULTS.md)。
 
 ## 原则
 
@@ -125,7 +136,7 @@ cd paper
 tectonic -X compile main.tex
 ```
 
-三份文本内容一致：公式、标题层级、列表、表格和链接一一对应。Markdown 使用 GitHub 能渲染的写法（`$$`、`\mathrm`、`\lbrace`），LaTeX 原稿使用规范 LaTeX（`\[...\]`、`\operatorname`、`\{...\}`）。
+核心架构文档在三份文本中同步维护；当前实验运行记录只写中文，结论冻结后再决定是否进入英文与 LaTeX 手稿。Markdown 使用 GitHub 能渲染的写法（`$$`、`\mathrm`、`\lbrace`），LaTeX 原稿使用规范 LaTeX（`\[...\]`、`\operatorname`、`\{...\}`）。
 
 ## License
 

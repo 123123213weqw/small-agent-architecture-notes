@@ -1,0 +1,219 @@
+{
+  "metadata": {
+    "seed": 0,
+    "device": "cuda",
+    "parameters": 4969473,
+    "train_episodes": 1200,
+    "train_examples": 45743,
+    "validation_examples": 5083,
+    "eval_episodes_per_split": 120,
+    "capacities": [
+      4,
+      8,
+      12
+    ],
+    "model": {
+      "max_bytes": 384,
+      "d_model": 256,
+      "layers": 6,
+      "heads": 8,
+      "ff_dim": 1024
+    },
+    "training": {
+      "batch_size": 32,
+      "gradient_accumulation": 2,
+      "epochs": 6,
+      "learning_rate": 0.0003,
+      "sample_rate": 0.3
+    },
+    "hard_negatives_per_episode": 14
+  },
+  "history": [
+    {
+      "epoch": 1.0,
+      "train_weighted_mse": 0.08351809460835546,
+      "val_mse": 0.015153819492241408,
+      "seconds": 80.37589192390442
+    },
+    {
+      "epoch": 2.0,
+      "train_weighted_mse": 0.018156874108656684,
+      "val_mse": 0.012893831158929362,
+      "seconds": 78.14811062812805
+    },
+    {
+      "epoch": 3.0,
+      "train_weighted_mse": 0.015549153948468699,
+      "val_mse": 0.016173550526841635,
+      "seconds": 79.50221109390259
+    },
+    {
+      "epoch": 4.0,
+      "train_weighted_mse": 0.014430078072188782,
+      "val_mse": 0.010373425735882607,
+      "seconds": 78.25501155853271
+    },
+    {
+      "epoch": 5.0,
+      "train_weighted_mse": 0.014665278716293457,
+      "val_mse": 0.013302291186573872,
+      "seconds": 77.37112402915955
+    },
+    {
+      "epoch": 6.0,
+      "train_weighted_mse": 0.01244441435442275,
+      "val_mse": 0.010944405823388131,
+      "seconds": 77.02125787734985
+    }
+  ],
+  "scores": {
+    "id/random": 0.09166666666666666,
+    "id/fifo": 0.1,
+    "id/lexical": 0.48333333333333334,
+    "id/text": 0.9916666666666667,
+    "id/structured": 0.9583333333333334,
+    "id/oracle": 1.0,
+    "ood_length_paraphrase/random": 0.041666666666666664,
+    "ood_length_paraphrase/fifo": 0.03333333333333333,
+    "ood_length_paraphrase/lexical": 0.4583333333333333,
+    "ood_length_paraphrase/text": 0.3333333333333333,
+    "ood_length_paraphrase/structured": 0.9083333333333333,
+    "ood_length_paraphrase/oracle": 1.0,
+    "paraphrase/random": 0.10833333333333334,
+    "paraphrase/fifo": 0.125,
+    "paraphrase/lexical": 0.475,
+    "paraphrase/text": 0.3333333333333333,
+    "paraphrase/structured": 0.9333333333333333,
+    "paraphrase/oracle": 1.0
+  },
+  "by_task": {
+    "id/delayed_query": {
+      "fifo": 0.05,
+      "text": 1.0,
+      "structured": 0.8,
+      "oracle": 1.0
+    },
+    "id/state_overwrite": {
+      "fifo": 0.4,
+      "text": 0.95,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "id/long_instruction": {
+      "fifo": 0.0,
+      "text": 1.0,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "id/completed_intermediate": {
+      "fifo": 0.05,
+      "text": 1.0,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "id/unresolved_subgoal": {
+      "fifo": 0.0,
+      "text": 1.0,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "id/relation_chain": {
+      "fifo": 0.1,
+      "text": 1.0,
+      "structured": 0.95,
+      "oracle": 1.0
+    },
+    "ood_length_paraphrase/delayed_query": {
+      "fifo": 0.0,
+      "text": 0.1,
+      "structured": 0.5,
+      "oracle": 1.0
+    },
+    "ood_length_paraphrase/state_overwrite": {
+      "fifo": 0.2,
+      "text": 0.6,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "ood_length_paraphrase/long_instruction": {
+      "fifo": 0.0,
+      "text": 0.35,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "ood_length_paraphrase/completed_intermediate": {
+      "fifo": 0.0,
+      "text": 0.6,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "ood_length_paraphrase/unresolved_subgoal": {
+      "fifo": 0.0,
+      "text": 0.05,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "ood_length_paraphrase/relation_chain": {
+      "fifo": 0.0,
+      "text": 0.3,
+      "structured": 0.95,
+      "oracle": 1.0
+    },
+    "paraphrase/delayed_query": {
+      "fifo": 0.05,
+      "text": 0.0,
+      "structured": 0.65,
+      "oracle": 1.0
+    },
+    "paraphrase/state_overwrite": {
+      "fifo": 0.5,
+      "text": 0.65,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "paraphrase/long_instruction": {
+      "fifo": 0.0,
+      "text": 0.3,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "paraphrase/completed_intermediate": {
+      "fifo": 0.0,
+      "text": 0.55,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "paraphrase/unresolved_subgoal": {
+      "fifo": 0.0,
+      "text": 0.1,
+      "structured": 1.0,
+      "oracle": 1.0
+    },
+    "paraphrase/relation_chain": {
+      "fifo": 0.2,
+      "text": 0.4,
+      "structured": 0.95,
+      "oracle": 1.0
+    }
+  },
+  "decision": {
+    "id": {
+      "oracle_fifo_gap": 0.9,
+      "text_gap_recovered": 0.9907407407407408,
+      "text_minus_lexical": 0.5083333333333333,
+      "pass_50pct_and_beat_lexical": true
+    },
+    "ood_length_paraphrase": {
+      "oracle_fifo_gap": 0.9666666666666667,
+      "text_gap_recovered": 0.3103448275862069,
+      "text_minus_lexical": -0.125,
+      "pass_50pct_and_beat_lexical": false
+    },
+    "paraphrase": {
+      "oracle_fifo_gap": 0.875,
+      "text_gap_recovered": 0.23809523809523808,
+      "text_minus_lexical": -0.14166666666666666,
+      "pass_50pct_and_beat_lexical": false
+    }
+  }
+}

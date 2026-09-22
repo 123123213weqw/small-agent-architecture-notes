@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .venv/
 results/**/episode_metrics.csv
+results/**/model.pt
