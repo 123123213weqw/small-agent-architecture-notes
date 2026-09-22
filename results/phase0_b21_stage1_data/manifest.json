@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "generator": "experiments/phase0_b21_data.py",
+  "generator_sha256": "5cb12ab14376ba8a44dc75cdbc1519a56375b0d9b845f18021102080dca363d1",
+  "preset": "stage1",
+  "seed": 0,
+  "max_decision_groups_per_episode": 12,
+  "capacities": [
+    4,
+    8,
+    12
+  ],
+  "hard_negative_counts": [
+    0,
+    4,
+    8,
+    14
+  ],
+  "tasks": [
+    "delayed_query",
+    "state_overwrite",
+    "long_instruction",
+    "completed_intermediate",
+    "unresolved_subgoal",
+    "relation_chain"
+  ],
+  "training_template_families": [
+    "A",
+    "B",
+    "C"
+  ],
+  "composition_template_family": "D",
+  "composition_unseen_characters": {},
+  "semantic_stress_template_family": "E",
+  "splits": {
+    "train": {
+      "file": "train.jsonl",
+      "sha256": "68dc77b978d0ab05578e6e23326aaf3464b0e56c8c3ce4dd59ef1acdc3777a28",
+      "episodes": 3000,
+      "decisions": 36000,
+      "lengths": [
+        32,
+        48,
+        64
+      ],
+      "task_counts": {
+        "completed_intermediate": 500,
+        "delayed_query": 500,
+        "long_instruction": 500,
+        "relation_chain": 500,
+        "state_overwrite": 500,
+        "unresolved_subgoal": 500
+      },
+      "capacity_counts": {
+        "12": 1000,
+        "4": 1000,
+        "8": 1000
+      },
+      "hard_negative_counts": {
+        "0": 750,
+        "14": 750,
+        "4": 750,
+        "8": 750
+      },
+      "template_counts": {
+        "A": 1000,
+        "B": 1000,
+        "C": 1000
+      },
+      "query_visibility_counts": {
+        "announced_query": 2764,
+        "hidden_query": 236
+      },
+      "behavior_policy_counts": {
+        "fifo": 1000,
+        "oracle": 1000,
+        "random": 1000
+      },
+      "informative_decisions": 13051,
+      "informative_decision_rate": 0.3625277777777778,
+      "positive_records": 16672,
+      "total_records": 324000,
+      "positive_record_rate": 0.05145679012345679,
+      "mean_oracle_tie_count": 8.536888888888889,
+      "episode_ids_sha256": "952df0a0e63a7b4de8305c382f67cf47a60786ca09adc61a594191eec1943639",
+      "entity_count": 32807,
+      "entity_ids_sha256": "373a6b2ee26d4ce8bb9a1d62d0071ce4955b0b38ed93b99d6ade770428692837"
+    },
+    "validation": {
+      "file": "validation.jsonl",
+      "sha256": "ae9596aee2b6e1c4520b02015cc9bf8decf1840e4215b3f0cfb8047b7d365dac",
+      "episodes": 400,
+      "decisions": 4800,
+      "lengths": [
+        32,
+        48,
+        64
+      ],
+      "task_counts": {
+        "completed_intermediate": 67,
+        "delayed_query": 67,
+        "long_instruction": 67,
+        "relation_chain": 66,
+        "state_overwrite": 67,
+        "unresolved_subgoal": 66
+      },
+      "capacity_counts": {
+        "12": 133,
+        "4": 134,
+        "8": 133
+      },
+      "hard_negative_counts": {
+        "0": 100,
+        "14": 100,
+        "4": 100,
+        "8": 100
+      },
+      "template_counts": {
+        "A": 134,
+        "B": 133,
+        "C": 133
+      },
+      "query_visibility_counts": {
+        "announced_query": 368,
+        "hidden_query": 32
+      },
+      "behavior_policy_counts": {
+        "fifo": 134,
+        "oracle": 133,
+        "random": 133
+      },
+      "informative_decisions": 1724,
+      "informative_decision_rate": 0.3591666666666667,
+      "positive_records": 2211,
+      "total_records": 43152,
+      "positive_record_rate": 0.051237486095661845,
+      "mean_oracle_tie_count": 8.529375,
+      "episode_ids_sha256": "4d7eea795c120afce7c186192f424bdefe2bca10d985696938eb9dd732a6733f",
+      "entity_count": 17435,
+      "entity_ids_sha256": "5f8dde88a5f9bca1714fc2ff1bf439f5564cbf21178f4b141dcfd24c44618b2b"
+    },
+    "test_id": {
+      "file": "test_id.jsonl",
+      "sha256": "bd41bd8f3bef8e4fee5a03348d2c7b87959907d6652c3bbf598a0f97479598ba",
+      "episodes": 600,
+      "decisions": 7200,
+      "lengths": [
+        48,
+        64
+      ],
+      "task_counts": {
+        "completed_intermediate": 100,
+        "delayed_query": 100,
+        "long_instruction": 100,
+        "relation_chain": 100,
+        "state_overwrite": 100,
+        "unresolved_subgoal": 100
+      },
+      "capacity_counts": {
+        "12": 200,
+        "4": 200,
+        "8": 200
+      },
+      "hard_negative_counts": {
+        "0": 150,
+        "14": 150,
+        "4": 150,
+        "8": 150
+      },
+      "template_counts": {
+        "A": 200,
+        "B": 200,
+        "C": 200
+      },
+      "query_visibility_counts": {
+        "announced_query": 549,
+        "hidden_query": 51
+      },
+      "behavior_policy_counts": {
+        "fifo": 200,
+        "oracle": 200,
+        "random": 200
+      },
+      "informative_decisions": 2429,
+      "informative_decision_rate": 0.3373611111111111,
+      "positive_records": 3101,
+      "total_records": 64800,
+      "positive_record_rate": 0.04785493827160494,
+      "mean_oracle_tie_count": 8.569305555555555,
+      "episode_ids_sha256": "74741109936edd26e730f930d88ed1b0edd901f150023bb3f4b72477e885be0a",
+      "entity_count": 21698,
+      "entity_ids_sha256": "c24260b615192e43ea444f6605014c37c23bc9f9f649e3f36d711e123e826e43"
+    },
+    "test_composition": {
+      "file": "test_composition.jsonl",
+      "sha256": "113d46e63068d0a88fb0a8e402dd2cb9c9614474fadf10ef82236dadb5754cc2",
+      "episodes": 600,
+      "decisions": 7200,
+      "lengths": [
+        48,
+        64
+      ],
+      "task_counts": {
+        "completed_intermediate": 100,
+        "delayed_query": 100,
+        "long_instruction": 100,
+        "relation_chain": 100,
+        "state_overwrite": 100,
+        "unresolved_subgoal": 100
+      },
+      "capacity_counts": {
+        "12": 200,
+        "4": 200,
+        "8": 200
+      },
+      "hard_negative_counts": {
+        "0": 150,
+        "14": 150,
+        "4": 150,
+        "8": 150
+      },
+      "template_counts": {
+        "D": 600
+      },
+      "query_visibility_counts": {
+        "announced_query": 548,
+        "hidden_query": 52
+      },
+      "behavior_policy_counts": {
+        "fifo": 200,
+        "oracle": 200,
+        "random": 200
+      },
+      "informative_decisions": 2338,
+      "informative_decision_rate": 0.32472222222222225,
+      "positive_records": 2997,
+      "total_records": 64800,
+      "positive_record_rate": 0.04625,
+      "mean_oracle_tie_count": 8.58375,
+      "episode_ids_sha256": "55b544601eb5825ec9019dc46e4ced6efa7fe980580289e63e06179f0c8eb0d9",
+      "entity_count": 21754,
+      "entity_ids_sha256": "0f7b1dcb6d106910159a17a4bd9e7e2b961605112e5712c4eab44d6414cb476c"
+    },
+    "test_length": {
+      "file": "test_length.jsonl",
+      "sha256": "ecb6204a1fe74e62e790c6f453df4ee9bf8b685295e18b387b0aa30868e40073",
+      "episodes": 600,
+      "decisions": 7200,
+      "lengths": [
+        96,
+        128
+      ],
+      "task_counts": {
+        "completed_intermediate": 100,
+        "delayed_query": 100,
+        "long_instruction": 100,
+        "relation_chain": 100,
+        "state_overwrite": 100,
+        "unresolved_subgoal": 100
+      },
+      "capacity_counts": {
+        "12": 200,
+        "4": 200,
+        "8": 200
+      },
+      "hard_negative_counts": {
+        "0": 150,
+        "14": 150,
+        "4": 150,
+        "8": 150
+      },
+      "template_counts": {
+        "D": 600
+      },
+      "query_visibility_counts": {
+        "announced_query": 550,
+        "hidden_query": 50
+      },
+      "behavior_policy_counts": {
+        "fifo": 200,
+        "oracle": 200,
+        "random": 200
+      },
+      "informative_decisions": 1887,
+      "informative_decision_rate": 0.26208333333333333,
+      "positive_records": 2434,
+      "total_records": 64800,
+      "positive_record_rate": 0.03756172839506173,
+      "mean_oracle_tie_count": 8.661944444444444,
+      "episode_ids_sha256": "ab15936c62b3ea00c359ace3c2613d17ff5aedf666ff3f7135accb35725ec06d",
+      "entity_count": 23497,
+      "entity_ids_sha256": "2e8aad231f01604ff0dfe82f995c7098bdc1ced405428b3f5e822d191714ad34"
+    },
+    "test_semantic_stress": {
+      "file": "test_semantic_stress.jsonl",
+      "sha256": "5ff61dd50eeafa74ff76fee51a02a89b7926926fefcff141e23d6e3102a34315",
+      "episodes": 600,
+      "decisions": 7200,
+      "lengths": [
+        48,
+        64
+      ],
+      "task_counts": {
+        "completed_intermediate": 100,
+        "delayed_query": 100,
+        "long_instruction": 100,
+        "relation_chain": 100,
+        "state_overwrite": 100,
+        "unresolved_subgoal": 100
+      },
+      "capacity_counts": {
+        "12": 200,
+        "4": 200,
+        "8": 200
+      },
+      "hard_negative_counts": {
+        "0": 150,
+        "14": 150,
+        "4": 150,
+        "8": 150
+      },
+      "template_counts": {
+        "E": 600
+      },
+      "query_visibility_counts": {
+        "announced_query": 549,
+        "hidden_query": 51
+      },
+      "behavior_policy_counts": {
+        "fifo": 200,
+        "oracle": 200,
+        "random": 200
+      },
+      "informative_decisions": 2398,
+      "informative_decision_rate": 0.33305555555555555,
+      "positive_records": 3070,
+      "total_records": 64800,
+      "positive_record_rate": 0.04737654320987654,
+      "mean_oracle_tie_count": 8.573611111111111,
+      "episode_ids_sha256": "74bc6152ae40ffad4c3e8d6982f3c459e84f428412181ade8a06355aeeb403f4",
+      "entity_count": 21761,
+      "entity_ids_sha256": "3c313356a9390b8a4f52550f263d0c77e2410ff67b1a1834afd8ddc943b8fd03"
+    }
+  }
+}

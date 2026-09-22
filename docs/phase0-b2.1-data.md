@@ -141,3 +141,29 @@ test_semantic_stress.jsonl
 results/phase0_b21_data_audit/manifest.json
 results/phase0_b21_data_audit/AUDIT.md
 ```
+
+## Seed 0 正式第一阶段数据
+
+审计集与全部自动测试通过后，已经在 L40 的私有 JuiceFS 工作区生成正式数据：
+
+```text
+/myjfs/94f3304c-d49d-4e45-bd8c-69cea6ddfe0c/25212408112/
+small-agent-architecture-notes/data/b2_1_stage1/
+```
+
+规模：
+
+- 训练 3,000 episodes、36,000 个决策组；
+- 验证 400 episodes、4,800 个决策组；
+- ID、组合、长度和语义压力测试各 600 episodes、7,200 个决策组；
+- 总体积约 153 MiB；
+- 生成耗时约 43 秒；
+- 训练集有信息决策比例 36.3%，正效用记录比例 5.1%；
+- 长度外推测试有信息决策比例 26.2%，必须单独报告，不能与其他测试集合并。
+
+正式数据 manifest 与审计摘要见：
+
+```text
+results/phase0_b21_stage1_data/manifest.json
+results/phase0_b21_stage1_data/AUDIT.md
+```
