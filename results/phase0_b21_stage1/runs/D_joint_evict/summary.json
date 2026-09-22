@@ -1,0 +1,511 @@
+{
+  "name": "D_joint_evict",
+  "architecture": "joint",
+  "parameters": 6780417,
+  "best_epoch": 6,
+  "best_validation_total": 2.0964247528711955,
+  "history": [
+    {
+      "epoch": 1.0,
+      "train_total": 2.119051946375105,
+      "train_regression": 0.03005073943722689,
+      "train_ranking": 0.0052414496759336845,
+      "train_eviction": 2.0890012056562637,
+      "validation_total": 2.104827188650767,
+      "validation_regression": 0.020150225832003342,
+      "validation_ranking": 0.001267983678555614,
+      "validation_eviction": 2.0846769587198892,
+      "seconds": 184.60536131309345,
+      "updates": 2250.0
+    },
+    {
+      "epoch": 2.0,
+      "train_total": 2.1045100235939027,
+      "train_regression": 0.018403585406809322,
+      "train_ranking": 0.0019753207530406546,
+      "train_eviction": 2.086106438530816,
+      "validation_total": 2.103323514858882,
+      "validation_regression": 0.01880807558402921,
+      "validation_ranking": 0.0008336865214975356,
+      "validation_eviction": 2.0845154396692913,
+      "seconds": 184.4340775050223,
+      "updates": 4500.0
+    },
+    {
+      "epoch": 3.0,
+      "train_total": 2.1000231567488776,
+      "train_regression": 0.014898705412041939,
+      "train_ranking": 0.0013351610376367187,
+      "train_eviction": 2.085124454127418,
+      "validation_total": 2.099018541574478,
+      "validation_regression": 0.016718225692197847,
+      "validation_ranking": 0.0017585074928505643,
+      "validation_eviction": 2.0823003172874452,
+      "seconds": 184.30848070397042,
+      "updates": 6750.0
+    },
+    {
+      "epoch": 4.0,
+      "train_total": 2.0961498102611964,
+      "train_regression": 0.011592963360097606,
+      "train_ranking": 0.001028081930340199,
+      "train_eviction": 2.084556847413381,
+      "validation_total": 2.0973912012577056,
+      "validation_regression": 0.012381675797651042,
+      "validation_ranking": 0.002108946430053038,
+      "validation_eviction": 2.0850095256169636,
+      "seconds": 184.22451154189184,
+      "updates": 9000.0
+    },
+    {
+      "epoch": 5.0,
+      "train_total": 2.092954056898753,
+      "train_regression": 0.00988718391605754,
+      "train_ranking": 0.0008516811333437443,
+      "train_eviction": 2.0830668732855053,
+      "validation_total": 2.097137271563212,
+      "validation_regression": 0.012807801418102827,
+      "validation_ranking": 0.0012573450638835007,
+      "validation_eviction": 2.0843294763565066,
+      "seconds": 184.13188433786854,
+      "updates": 11250.0
+    },
+    {
+      "epoch": 6.0,
+      "train_total": 2.091136586348216,
+      "train_regression": 0.008758024985545084,
+      "train_ranking": 0.0007931426472544748,
+      "train_eviction": 2.082378560702006,
+      "validation_total": 2.0964247528711955,
+      "validation_regression": 0.011616966162515988,
+      "validation_ranking": 0.0012084505127495503,
+      "validation_eviction": 2.0848077917099,
+      "seconds": 184.51684249797836,
+      "updates": 13500.0
+    }
+  ],
+  "offline": {
+    "test_id": {
+      "mse": 0.0045502859843877435,
+      "argmin_correct": 1.0,
+      "regret": 0.0,
+      "count": 7200,
+      "pairwise_accuracy": 0.9990263819095477
+    },
+    "test_composition": {
+      "mse": 0.041948461512279905,
+      "argmin_correct": 0.9901388888888889,
+      "regret": 0.00986111111111111,
+      "count": 7200,
+      "pairwise_accuracy": 0.913503483299694
+    },
+    "test_length": {
+      "mse": 0.04182081008119904,
+      "argmin_correct": 0.9933333333333333,
+      "regret": 0.006666666666666667,
+      "count": 7200,
+      "pairwise_accuracy": 0.9133419787931956
+    },
+    "test_semantic_stress": {
+      "mse": 0.024853951160077308,
+      "argmin_correct": 0.9894444444444445,
+      "regret": 0.010555555555555556,
+      "count": 7200,
+      "pairwise_accuracy": 0.8766246177370031
+    }
+  },
+  "offline_efficiency": {
+    "test_id": {
+      "groups": 7200.0,
+      "mse": 0.0045502859843877435,
+      "pairwise_accuracy": 0.9990263819095477,
+      "argmin_accuracy": 1.0,
+      "regret": 0.0,
+      "seconds": 21.967325608013198,
+      "groups_per_second": 327.75951558589355,
+      "peak_memory_mib": 2357.6640625
+    },
+    "test_composition": {
+      "groups": 7200.0,
+      "mse": 0.041948461512279905,
+      "pairwise_accuracy": 0.913503483299694,
+      "argmin_accuracy": 0.9901388888888889,
+      "regret": 0.00986111111111111,
+      "seconds": 21.96613197820261,
+      "groups_per_second": 327.77732589172683,
+      "peak_memory_mib": 2357.6640625
+    },
+    "test_length": {
+      "groups": 7200.0,
+      "mse": 0.04182081008119904,
+      "pairwise_accuracy": 0.9133419787931956,
+      "argmin_accuracy": 0.9933333333333333,
+      "regret": 0.006666666666666667,
+      "seconds": 22.308832817943767,
+      "groups_per_second": 322.74212007222496,
+      "peak_memory_mib": 2357.6640625
+    },
+    "test_semantic_stress": {
+      "groups": 7200.0,
+      "mse": 0.024853951160077308,
+      "pairwise_accuracy": 0.8766246177370031,
+      "argmin_accuracy": 0.9894444444444445,
+      "regret": 0.010555555555555556,
+      "seconds": 21.92913710605353,
+      "groups_per_second": 328.3302924861755,
+      "peak_memory_mib": 2357.6640625
+    }
+  },
+  "rollout": {
+    "test_id/model": {
+      "success": 0.9183333333333333,
+      "clause_accuracy": 0.9183333333333333,
+      "required_recall": 0.9575,
+      "eviction_accuracy": 0.998359126984127,
+      "eviction_regret": 0.001640873015873016,
+      "stale_value_rate": 0.0033333333333333335,
+      "count": 600
+    },
+    "test_id/fifo": {
+      "success": 0.12666666666666668,
+      "clause_accuracy": 0.12666666666666668,
+      "required_recall": 0.16833333333333333,
+      "eviction_accuracy": 0.977822691197691,
+      "eviction_regret": 0.018645530395530397,
+      "stale_value_rate": 0.06166666666666667,
+      "count": 600
+    },
+    "test_id/oracle": {
+      "success": 1.0,
+      "clause_accuracy": 1.0,
+      "required_recall": 1.0,
+      "eviction_accuracy": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 600
+    },
+    "test_composition/model": {
+      "success": 0.6916666666666667,
+      "clause_accuracy": 0.6916666666666667,
+      "required_recall": 0.7908333333333334,
+      "eviction_accuracy": 0.9934585784585783,
+      "eviction_regret": 0.006541421541421542,
+      "stale_value_rate": 0.03666666666666667,
+      "count": 600
+    },
+    "test_composition/fifo": {
+      "success": 0.13833333333333334,
+      "clause_accuracy": 0.13833333333333334,
+      "required_recall": 0.17583333333333334,
+      "eviction_accuracy": 0.978142982017982,
+      "eviction_regret": 0.018314056314056314,
+      "stale_value_rate": 0.045,
+      "count": 600
+    },
+    "test_composition/oracle": {
+      "success": 1.0,
+      "clause_accuracy": 1.0,
+      "required_recall": 1.0,
+      "eviction_accuracy": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 600
+    },
+    "test_length/model": {
+      "success": 0.62,
+      "clause_accuracy": 0.62,
+      "required_recall": 0.7158333333333333,
+      "eviction_accuracy": 0.996312743764272,
+      "eviction_regret": 0.003687256235727967,
+      "stale_value_rate": 0.05,
+      "count": 600
+    },
+    "test_length/fifo": {
+      "success": 0.058333333333333334,
+      "clause_accuracy": 0.058333333333333334,
+      "required_recall": 0.0775,
+      "eviction_accuracy": 0.9892713781445404,
+      "eviction_regret": 0.00910917003444933,
+      "stale_value_rate": 0.05,
+      "count": 600
+    },
+    "test_length/oracle": {
+      "success": 1.0,
+      "clause_accuracy": 1.0,
+      "required_recall": 1.0,
+      "eviction_accuracy": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 600
+    },
+    "test_semantic_stress/model": {
+      "success": 0.7266666666666667,
+      "clause_accuracy": 0.7275,
+      "required_recall": 0.7608333333333334,
+      "eviction_accuracy": 0.9941521025271026,
+      "eviction_regret": 0.00582706413956414,
+      "stale_value_rate": 0.015,
+      "count": 600
+    },
+    "test_semantic_stress/fifo": {
+      "success": 0.135,
+      "clause_accuracy": 0.135,
+      "required_recall": 0.17416666666666666,
+      "eviction_accuracy": 0.9781268315018314,
+      "eviction_regret": 0.018346801346801344,
+      "stale_value_rate": 0.04833333333333333,
+      "count": 600
+    },
+    "test_semantic_stress/oracle": {
+      "success": 1.0,
+      "clause_accuracy": 1.0,
+      "required_recall": 1.0,
+      "eviction_accuracy": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 600
+    }
+  },
+  "rollout_by_task": {
+    "test_id/delayed_query": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_id/state_overwrite": {
+      "success": 0.98,
+      "required_recall": 0.98,
+      "eviction_regret": 0.0004772727272727273,
+      "stale_value_rate": 0.02,
+      "count": 100
+    },
+    "test_id/long_instruction": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_id/completed_intermediate": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_id/unresolved_subgoal": {
+      "success": 0.53,
+      "required_recall": 0.765,
+      "eviction_regret": 0.009367965367965369,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_id/relation_chain": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_composition/delayed_query": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_composition/state_overwrite": {
+      "success": 0.78,
+      "required_recall": 0.78,
+      "eviction_regret": 0.0044571817071817075,
+      "stale_value_rate": 0.22,
+      "count": 100
+    },
+    "test_composition/long_instruction": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_composition/completed_intermediate": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_composition/unresolved_subgoal": {
+      "success": 0.18,
+      "required_recall": 0.59,
+      "eviction_regret": 0.017443584193584192,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_composition/relation_chain": {
+      "success": 0.19,
+      "required_recall": 0.375,
+      "eviction_regret": 0.017347763347763345,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_length/delayed_query": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_length/state_overwrite": {
+      "success": 0.61,
+      "required_recall": 0.61,
+      "eviction_regret": 0.0038260481196351974,
+      "stale_value_rate": 0.3,
+      "count": 100
+    },
+    "test_length/long_instruction": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_length/completed_intermediate": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_length/unresolved_subgoal": {
+      "success": 0.09,
+      "required_recall": 0.545,
+      "eviction_regret": 0.008820354642536294,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_length/relation_chain": {
+      "success": 0.02,
+      "required_recall": 0.14,
+      "eviction_regret": 0.009477134652196312,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_semantic_stress/delayed_query": {
+      "success": 0.72,
+      "required_recall": 0.72,
+      "eviction_regret": 0.006097791097791097,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_semantic_stress/state_overwrite": {
+      "success": 0.91,
+      "required_recall": 0.91,
+      "eviction_regret": 0.0019365356865356867,
+      "stale_value_rate": 0.09,
+      "count": 100
+    },
+    "test_semantic_stress/long_instruction": {
+      "success": 0.99,
+      "required_recall": 0.995,
+      "eviction_regret": 0.000125,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_semantic_stress/completed_intermediate": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_semantic_stress/unresolved_subgoal": {
+      "success": 0.0,
+      "required_recall": 0.07,
+      "eviction_regret": 0.020995171495171494,
+      "stale_value_rate": 0.0,
+      "count": 100
+    },
+    "test_semantic_stress/relation_chain": {
+      "success": 0.74,
+      "required_recall": 0.87,
+      "eviction_regret": 0.005807886557886558,
+      "stale_value_rate": 0.0,
+      "count": 100
+    }
+  },
+  "rollout_by_query_visibility": {
+    "test_id/announced_query": {
+      "success": 0.9107468123861566,
+      "required_recall": 0.953551912568306,
+      "eviction_regret": 0.0017933038424841705,
+      "count": 549
+    },
+    "test_id/hidden_query": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "count": 51
+    },
+    "test_composition/announced_query": {
+      "success": 0.6624087591240876,
+      "required_recall": 0.7709854014598541,
+      "eviction_regret": 0.007162140373819206,
+      "count": 548
+    },
+    "test_composition/hidden_query": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "count": 52
+    },
+    "test_length/hidden_query": {
+      "success": 1.0,
+      "required_recall": 1.0,
+      "eviction_regret": 0.0,
+      "count": 50
+    },
+    "test_length/announced_query": {
+      "success": 0.5854545454545454,
+      "required_recall": 0.69,
+      "eviction_regret": 0.004022461348066874,
+      "count": 550
+    },
+    "test_semantic_stress/hidden_query": {
+      "success": 0.6470588235294118,
+      "required_recall": 0.6470588235294118,
+      "eviction_regret": 0.007731375378434202,
+      "count": 51
+    },
+    "test_semantic_stress/announced_query": {
+      "success": 0.7340619307832422,
+      "required_recall": 0.7714025500910747,
+      "eviction_regret": 0.005650160909723751,
+      "count": 549
+    }
+  },
+  "rollout_efficiency": {
+    "test_id": {
+      "scored_groups": 28704.0,
+      "scoring_seconds": 104.85374685307033,
+      "groups_per_second": 273.75273522864563
+    },
+    "test_composition": {
+      "scored_groups": 28976.0,
+      "scoring_seconds": 106.46114372229204,
+      "groups_per_second": 272.1744195758877
+    },
+    "test_length": {
+      "scored_groups": 63488.0,
+      "scoring_seconds": 236.3728245915845,
+      "groups_per_second": 268.5926358484627
+    },
+    "test_semantic_stress": {
+      "scored_groups": 28896.0,
+      "scoring_seconds": 105.93649322050624,
+      "groups_per_second": 272.76719401928034
+    }
+  }
+}

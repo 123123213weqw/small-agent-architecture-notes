@@ -136,3 +136,19 @@ scripts/status_b2_1_stage1.sh
 ```
 
 六个实验分别使用物理 GPU 2–7。每个进程独立保存配置、checkpoint、TensorBoard、原始指标和记忆淘汰轨迹。
+
+## 完成状态
+
+2026-09-22，A–F 六个实验已经全部完成。训练中间产物保存在 L40 工作区：
+
+```text
+/myjfs/94f3304c-d49d-4e45-bd8c-69cea6ddfe0c/25212408112/small-agent-architecture-notes/
+```
+
+仓库保存可复核的聚合报告、完整指标表，以及每个实验的解析后配置和 `summary.json`：
+
+```text
+results/phase0_b21_stage1/
+```
+
+主结论：预注册主候选 E 未通过全部门槛，正式决定是停止扩展并诊断。诊断性消融中 C 最好，下一轮应重新预注册 C 的多种子验证，而不是把本轮事后选择当成已经通过。

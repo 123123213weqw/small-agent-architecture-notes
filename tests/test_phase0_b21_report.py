@@ -62,8 +62,11 @@ class Phase0B21ReportTests(unittest.TestCase):
         summary, rows, markdown = build_report({name: fake_run(name) for name in NAMES})
         self.assertTrue(summary["pass"])
         self.assertEqual(summary["decision"], "continue_to_stage2")
+        self.assertEqual(summary["post_hoc_winner"], "E_joint_full")
+        self.assertEqual(len(summary["post_hoc_diagnostics"]), len(NAMES) - 1)
         self.assertEqual(len(rows), len(NAMES) * len(SPLITS))
         self.assertIn("进入第二阶段", markdown)
+        self.assertIn("诊断性消融", markdown)
 
 
 if __name__ == "__main__":

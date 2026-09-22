@@ -1,0 +1,115 @@
+{
+  "decision": "stop_and_diagnose",
+  "pass": false,
+  "gates": {
+    "composition_success_gain_at_least_5pp": {
+      "value": 0.05166666666666675,
+      "pass": true
+    },
+    "mean_regret_reduction_at_least_20pct": {
+      "value": -0.3586840223351465,
+      "pass": false
+    },
+    "at_least_4_of_6_tasks_non_decreasing": {
+      "value": 3,
+      "pass": false
+    },
+    "full_set_beats_partial": {
+      "success_gain": 0.21166666666666667,
+      "regret_reduction": 0.5370569537622354,
+      "pass": true
+    },
+    "efficiency_acceptable": {
+      "throughput_ratio_E_over_A": 2.166663978789718,
+      "memory_ratio_E_over_A": 0.4963061470884685,
+      "pass": true
+    }
+  },
+  "per_task_composition": [
+    {
+      "task": "delayed_query",
+      "A": 1.0,
+      "E": 1.0,
+      "F": 0.9,
+      "E_minus_A": 0.0
+    },
+    {
+      "task": "state_overwrite",
+      "A": 0.92,
+      "E": 0.76,
+      "F": 0.82,
+      "E_minus_A": -0.16000000000000003
+    },
+    {
+      "task": "long_instruction",
+      "A": 0.59,
+      "E": 0.98,
+      "F": 0.79,
+      "E_minus_A": 0.39
+    },
+    {
+      "task": "completed_intermediate",
+      "A": 1.0,
+      "E": 0.88,
+      "F": 0.99,
+      "E_minus_A": -0.12
+    },
+    {
+      "task": "unresolved_subgoal",
+      "A": 0.46,
+      "E": 0.99,
+      "F": 0.17,
+      "E_minus_A": 0.53
+    },
+    {
+      "task": "relation_chain",
+      "A": 0.69,
+      "E": 0.36,
+      "F": 0.03,
+      "E_minus_A": -0.32999999999999996
+    }
+  ],
+  "mean_rollout_regret": {
+    "A_pointwise": 0.0026245232407189232,
+    "E_joint_full": 0.0035658977934120606
+  },
+  "post_hoc_diagnostics": [
+    {
+      "experiment": "B_joint_mse",
+      "composition_success_gain": 0.018333333333333424,
+      "mean_regret": 0.002578068445131637,
+      "mean_regret_reduction": 0.0177002797561667,
+      "non_decreasing_tasks": 5
+    },
+    {
+      "experiment": "C_joint_rank",
+      "composition_success_gain": 0.09666666666666668,
+      "mean_regret": 0.0015239503250820171,
+      "mean_regret_reduction": 0.4193420346071812,
+      "non_decreasing_tasks": 5
+    },
+    {
+      "experiment": "D_joint_evict",
+      "composition_success_gain": -0.08499999999999996,
+      "mean_regret": 0.004424153733146666,
+      "mean_regret_reduction": -0.6856980591777037,
+      "non_decreasing_tasks": 3
+    },
+    {
+      "experiment": "E_joint_full",
+      "composition_success_gain": 0.05166666666666675,
+      "mean_regret": 0.0035658977934120606,
+      "mean_regret_reduction": -0.3586840223351465,
+      "non_decreasing_tasks": 3
+    },
+    {
+      "experiment": "F_joint_partial",
+      "composition_success_gain": -0.15999999999999992,
+      "mean_regret": 0.0052016715847753945,
+      "mean_regret_reduction": -0.9819491418755831,
+      "non_decreasing_tasks": 1
+    }
+  ],
+  "post_hoc_winner": "C_joint_rank",
+  "post_hoc_warning": "该结果不改变预注册的 E 判定，只用于定位损失项。"
+}

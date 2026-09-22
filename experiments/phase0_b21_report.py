@@ -47,6 +47,35 @@ def rollout(run: dict[str, Any], split: str, policy: str = "model") -> dict[str,
     return run["rollout"][f"{split}/{policy}"]
 
 
+def compare_with_a(
+    runs: dict[str, dict[str, Any]], name: str
+) -> dict[str, float | int | str]:
+    """Post-hoc diagnostic comparison against the frozen pointwise baseline."""
+    a = runs["A_pointwise"]
+    candidate = runs[name]
+    a_regret = mean([rollout(a, split)["eviction_regret"] for split in SPLITS])
+    candidate_regret = mean(
+        [rollout(candidate, split)["eviction_regret"] for split in SPLITS]
+    )
+    per_task_non_decreasing = sum(
+        candidate["rollout_by_task"][f"test_composition/{task}"]["success"] + 1e-12
+        >= a["rollout_by_task"][f"test_composition/{task}"]["success"]
+        for task in TASKS
+    )
+    return {
+        "experiment": name,
+        "composition_success_gain": (
+            rollout(candidate, "test_composition")["success"]
+            - rollout(a, "test_composition")["success"]
+        ),
+        "mean_regret": candidate_regret,
+        "mean_regret_reduction": (
+            (a_regret - candidate_regret) / a_regret if a_regret > 1e-12 else 0.0
+        ),
+        "non_decreasing_tasks": per_task_non_decreasing,
+    }
+
+
 def build_report(runs: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], list[dict[str, object]], str]:
     rows: list[dict[str, object]] = []
     for name in NAMES:
@@ -136,12 +165,23 @@ def build_report(runs: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], list[
         },
     }
     decision = all(item["pass"] for item in gates.values())
+    diagnostics = [compare_with_a(runs, name) for name in NAMES[1:]]
+    diagnostic_winner = max(
+        diagnostics,
+        key=lambda item: (
+            item["composition_success_gain"],
+            item["mean_regret_reduction"],
+        ),
+    )["experiment"]
     summary = {
         "decision": "continue_to_stage2" if decision else "stop_and_diagnose",
         "pass": decision,
         "gates": gates,
         "per_task_composition": per_task,
         "mean_rollout_regret": {"A_pointwise": a_regret, "E_joint_full": e_regret},
+        "post_hoc_diagnostics": diagnostics,
+        "post_hoc_winner": diagnostic_winner,
+        "post_hoc_warning": "该结果不改变预注册的 E 判定，只用于定位损失项。",
     }
 
     lines = [
@@ -200,7 +240,41 @@ def build_report(runs: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], list[
         lines.append(
             f"| {item['task']} | {item['A']:.3f} | {item['E']:.3f} | {item['F']:.3f} | {item['E_minus_A']:+.3f} |"
         )
-    lines.append("")
+    lines.extend(
+        [
+            "",
+            "## 诊断性消融（事后分析）",
+            "",
+            "下面的比较没有改变预注册规则：正式主候选 E 仍然判定失败。它只用于定位失败来自集合输入、排序损失还是淘汰损失，不能被解释为重新挑选一个通过门槛的实验。",
+            "",
+            "| 实验 | 组合成功率相对 A | 四测试集平均 regret | regret 相对 A 降幅 | 不下降任务数 |",
+            "|---|---:|---:|---:|---:|",
+        ]
+    )
+    for item in diagnostics:
+        lines.append(
+            f"| {item['experiment']} | {item['composition_success_gain']:+.1%} | "
+            f"{item['mean_regret']:.6f} | {item['mean_regret_reduction']:+.1%} | "
+            f"{item['non_decreasing_tasks']}/6 |"
+        )
+    lines.extend(
+        [
+            "",
+            f"诊断结果中表现最好的是 **{diagnostic_winner}**。它相对 A 的组合成功率与平均 regret 同时改善，说明主要有效信号来自“完整集合交互 + 排序监督”，而不是淘汰交叉熵。",
+            "",
+            "D、E、F 都包含淘汰交叉熵，结果均弱于不含该项的 C。数据中最低效用经常大规模并列；当前目标把并列最低记录设为均匀分布，因此会迫使模型在许多同样可淘汰的记录之间拟合近似均匀概率。训练末期淘汰损失约为 2.08，与平均约 8.5 个并列最低项对应的 $\\log(8.5)\\approx2.14$ 接近。这个现象与结果一致，但仍属于机制解释，不是独立因果证明。",
+            "",
+            "E 明显优于使用相同损失但只看局部竞争集合的 F，说明完整集合交互本身有贡献；但该收益不足以抵消当前淘汰损失带来的退化。",
+            "",
+            "## 结论与下一步",
+            "",
+            "1. Phase 0B2.1 第一阶段六个预定实验已全部完成。",
+            "2. 按预注册门槛，E 不进入原计划的第二阶段多种子验证。",
+            "3. 保留 C 作为修订候选，但必须先重新预注册一个只验证 C 的多种子实验，不能把本轮事后选择当成最终结论。",
+            "4. 下一轮优先移除淘汰交叉熵，或把它改成集合级 margin / 任一最小项均可的目标，再单独验证。",
+            "",
+        ]
+    )
     return summary, rows, "\n".join(lines)
 
 
@@ -217,7 +291,7 @@ def main() -> None:
     )
     (args.output / "RESULTS.md").write_text(markdown, encoding="utf-8")
     with (args.output / "comparison.csv").open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     print(json.dumps(summary, indent=2, ensure_ascii=False))
