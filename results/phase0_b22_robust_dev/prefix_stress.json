@@ -1,0 +1,9 @@
+[
+  {"variant":"original","prefix_bytes_before_a":16,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0},
+  {"variant":"no_prefix","prefix_bytes_before_a":7,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0},
+  {"variant":"same_bytes_note","prefix_bytes_before_a":16,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0},
+  {"variant":"same_bytes_state","prefix_bytes_before_a":16,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0},
+  {"variant":"ascii_prefix","prefix_bytes_before_a":14,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0},
+  {"variant":"relation_suffix","prefix_bytes_before_a":7,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0},
+  {"variant":"relation_no_colon","prefix_bytes_before_a":13,"success":1.0,"required_recall":1.0,"decision_accuracy":1.0}
+]
