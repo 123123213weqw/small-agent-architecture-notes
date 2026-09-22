@@ -26,7 +26,9 @@
 
 Phase 0B2 已开始验证纯文本效用预测。首个 4.97M 参数实验在同模板测试恢复 99.1% 的 Oracle−FIFO 差距，但在未见释义和“未见释义 + 长度外推”上只恢复 23.8% 和 31.0%，因此 B2 当前未通过，暂不进入 20M–50M Reader。
 
-Phase 0B2.1 第一阶段已经在六张 L40 上完成 A–F 六个严格对照。预注册主候选 E（完整集合 + Regression + Ranking + Eviction）虽然把组合成功率提高 5.17 个百分点，但平均淘汰 regret 反而增加 35.87%，且只有 3/6 类任务不下降，因此正式决定为 `stop_and_diagnose`。诊断性消融中 C（完整集合 + Regression + Ranking）最好：组合成功率提高 9.67 个百分点，平均 regret 降低 41.93%。这支持集合内排序方向，但 C 是事后选出的下一轮候选，尚未完成多种子确认。
+Phase 0B2.1 第一阶段已经在六张 L40 上完成 A–F 六个严格对照。预注册主候选 E（完整集合 + Regression + Ranking + Eviction）虽然把组合成功率提高 5.17 个百分点，但平均淘汰 regret 反而增加 35.87%，且只有 3/6 类任务不下降，因此正式决定为 `stop_and_diagnose`。诊断性消融中 C（完整集合 + Regression + Ranking）最好：组合成功率提高 9.67 个百分点，平均 regret 降低 41.93%。由于 C 是事后选出的候选，项目随后为它单独冻结并执行了多种子确认计划。
+
+C 随后完成了独立冻结的 A/C Seed 0、1、2 确认。C 的三种子组合成功率为 $0.860\pm0.020$，A 为 $0.605\pm0.182$；C 平均提高 25.5 个百分点，并将四测试集平均淘汰 regret 降低 63.8%。全部预注册门槛均通过，因此 B2.1 在当前合成任务范围内确认“完整集合交互 + 排序监督”有效。`relation_chain` 仍明显退化，且该结果不代表语言表示或真实 Reader 已通过。
 
 第一版明确不加入显式衰减、年龄、occupancy、新奇度、冲突门、关联图、soft write 或记忆合并。
 
@@ -77,6 +79,7 @@ $$
 - [Phase 0B2.1 第一阶段执行说明](docs/phase0-b2.1-execution.md)
 - [Phase 0B2.1 第一阶段实验结果](results/phase0_b21_stage1/RESULTS.md)
 - [Phase 0B2.1 A/C 多种子确认计划](docs/phase0-b2.1-ac-seed-plan.md)
+- [Phase 0B2.1 A/C 多种子确认结果](results/phase0_b21_ac_seeds/RESULTS.md)
 - [实验可视化：TensorBoard 与记忆淘汰查看器](docs/visualization.md)
 - [后续任务清单](TODO.md)
 - [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)

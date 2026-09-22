@@ -1,0 +1,143 @@
+{
+  "decision": "pass_b2_1_seed_confirmation",
+  "pass": true,
+  "gates": {
+    "mean_composition_gain_at_least_5pp": {
+      "value": 0.255,
+      "pass": true
+    },
+    "mean_regret_reduction_at_least_20pct": {
+      "value": 0.6379557703572585,
+      "pass": true
+    },
+    "at_least_4_of_6_tasks_non_decreasing": {
+      "value": 5,
+      "pass": true
+    },
+    "at_least_2_seeds_better_on_both": {
+      "value": 3,
+      "pass": true
+    },
+    "no_catastrophic_seed": {
+      "value": true,
+      "pass": true
+    },
+    "efficiency_acceptable": {
+      "parameter_ratio_C_over_A": 1.000075517282322,
+      "throughput_ratio_C_over_A": 2.161037912127817,
+      "memory_ratio_C_over_A": 0.4963061470884685,
+      "pass": true
+    }
+  },
+  "seed_comparisons": [
+    {
+      "seed": 0,
+      "composition_A": 0.7766666666666666,
+      "composition_C": 0.8733333333333333,
+      "composition_gain": 0.09666666666666668,
+      "mean_regret_A": 0.0026245232407189232,
+      "mean_regret_C": 0.0015239503250820171,
+      "regret_reduction": 0.4193420346071812,
+      "both_better": true,
+      "no_catastrophic_regression": true
+    },
+    {
+      "seed": 1,
+      "composition_A": 0.415,
+      "composition_C": 0.8366666666666667,
+      "composition_gain": 0.4216666666666667,
+      "mean_regret_A": 0.007851315532606942,
+      "mean_regret_C": 0.0024521047856759033,
+      "regret_reduction": 0.6876823029857636,
+      "both_better": true,
+      "no_catastrophic_regression": true
+    },
+    {
+      "seed": 2,
+      "composition_A": 0.6233333333333333,
+      "composition_C": 0.87,
+      "composition_gain": 0.2466666666666667,
+      "mean_regret_A": 0.00440530894680055,
+      "mean_regret_C": 0.0014115785517750867,
+      "regret_reduction": 0.6795733128319467,
+      "both_better": true,
+      "no_catastrophic_regression": true
+    }
+  ],
+  "split_success": [
+    {
+      "split": "test_id",
+      "A_mean": 0.9950000000000001,
+      "A_std": 0.0033333333333332993,
+      "C_mean": 0.9983333333333334,
+      "C_std": 0.0028867513459481316,
+      "C_minus_A": 0.003333333333333336
+    },
+    {
+      "split": "test_composition",
+      "A_mean": 0.605,
+      "A_std": 0.1815289998258619,
+      "C_mean": 0.86,
+      "C_std": 0.02027587510099405,
+      "C_minus_A": 0.255
+    },
+    {
+      "split": "test_length",
+      "A_mean": 0.5383333333333333,
+      "A_std": 0.17526963354912467,
+      "C_mean": 0.8494444444444444,
+      "C_std": 0.008552669065744836,
+      "C_minus_A": 0.3111111111111111
+    },
+    {
+      "split": "test_semantic_stress",
+      "A_mean": 0.57,
+      "A_std": 0.30151008827787723,
+      "C_mean": 0.8727777777777779,
+      "C_std": 0.08107495388927549,
+      "C_minus_A": 0.3027777777777778
+    }
+  ],
+  "composition_tasks": [
+    {
+      "task": "delayed_query",
+      "A_mean": 0.9899999999999999,
+      "C_mean": 1.0,
+      "C_minus_A": 0.01000000000000012
+    },
+    {
+      "task": "state_overwrite",
+      "A_mean": 0.9066666666666666,
+      "C_mean": 0.9966666666666667,
+      "C_minus_A": 0.09000000000000008
+    },
+    {
+      "task": "long_instruction",
+      "A_mean": 0.27999999999999997,
+      "C_mean": 1.0,
+      "C_minus_A": 0.72
+    },
+    {
+      "task": "completed_intermediate",
+      "A_mean": 0.6833333333333332,
+      "C_mean": 1.0,
+      "C_minus_A": 0.31666666666666676
+    },
+    {
+      "task": "unresolved_subgoal",
+      "A_mean": 0.41,
+      "C_mean": 1.0,
+      "C_minus_A": 0.5900000000000001
+    },
+    {
+      "task": "relation_chain",
+      "A_mean": 0.36000000000000004,
+      "C_mean": 0.16333333333333333,
+      "C_minus_A": -0.1966666666666667
+    }
+  ],
+  "mean_rollout_regret": {
+    "A": 0.004960382573375472,
+    "C": 0.0017958778875110024
+  }
+}
