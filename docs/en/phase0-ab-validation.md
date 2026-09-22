@@ -23,7 +23,7 @@ At decision time, one mask is applied to each competing record, which gives:
 
 $$
 u_{t,i} =
-L(Y_t\mid\mathcal R_t\setminus\lbracem_i\rbrace)
+L(Y_t\mid\mathcal R_t\setminus\lbrace m_i\rbrace)
 -L(Y_t\mid\mathcal R_t).
 $$
 
@@ -103,8 +103,8 @@ The run uses 10 random seeds on a WZU V100 server; each seed contains 600 traini
 
 | Split | FIFO | Oracle | Predicted | Oracle−FIFO | Recovered ratio |
 |---|---:|---:|---:|---:|---:|
-| In-distribution | 0.105 | 1.000 | 0.943 | $0.895\pm0.012$ | $93.6\%\pm1.8\%$ |
-| Length extrapolation | 0.052 | 1.000 | 0.927 | $0.948\pm0.014$ | $92.3\%\pm1.9\%$ |
+| In-distribution | 0.105 | 1.000 | 0.943 | $0.895\pm0.012$ | $93.6\\%\pm1.8\\%$ |
+| Length extrapolation | 0.052 | 1.000 | 0.927 | $0.948\pm0.014$ | $92.3\\%\pm1.9\\%$ |
 
 Phase 0A and 0B both reach the pre-registered thresholds. The hardest subtask is `delayed_query` without an advance disclosure of the query key: the predicted policy reaches 0.660 and 0.560 on the in-distribution and length-extrapolation tests respectively, while Oracle reaches 1.000. This matches the expectation, because part of the future demand is not identifiable at decision time.
 
