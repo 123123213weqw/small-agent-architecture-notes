@@ -70,6 +70,8 @@ $$
 - [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
 - [Phase 0A/0B：符号验证方案](docs/phase0-ab-validation.md)
 - [Phase 0B2：从文本预测记忆效用](docs/phase0-b2-text.md)
+- [Phase 0B2.1 第一阶段计划：完整竞争集合联合排序](docs/phase0-b2.1-stage1-plan.md)
+- [后续任务清单](TODO.md)
 - [早期持久情景记忆推导（已被简化版取代）](docs/candidate-persistent-episodic-memory.md)
 - [决策记录](docs/decisions.md)
 
