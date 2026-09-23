@@ -1,0 +1,36 @@
+{
+  "rows": 72,
+  "models": {
+    "B24_base": {
+      "parameters": [
+        6780417
+      ],
+      "K0_success": 1.0,
+      "K16_success": 0.125,
+      "K64_success": 0.0,
+      "K64_required_recall": 0.171875,
+      "K64_auc": 0.49517718063399174
+    },
+    "B24_deepset": {
+      "parameters": [
+        9939457
+      ],
+      "K0_success": 1.0,
+      "K16_success": 0.08984375,
+      "K64_success": 0.0,
+      "K64_required_recall": 0.1748046875,
+      "K64_auc": 0.5101662030273663
+    },
+    "B24_wide": {
+      "parameters": [
+        14987521
+      ],
+      "K0_success": 1.0,
+      "K16_success": 0.125,
+      "K64_success": 0.0,
+      "K64_required_recall": 0.171875,
+      "K64_auc": 0.5234001297058448
+    }
+  },
+  "winner": "B24_deepset"
+}
