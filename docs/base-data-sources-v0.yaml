@@ -1,0 +1,55 @@
+# 2026-09-23 通过 Hugging Face Hub 元数据查询得到的候选快照。
+# 仅用于审计规划；不是训练数据批准清单，也未下载原始数据。
+schema_version: 0
+sources:
+  - source_id: fineweb_edu
+    repo_id: HuggingFaceFW/fineweb-edu
+    revision_observed: 87f09149ef4734204d70ed1d046ddc9ca3f2b8f9
+    subset: null
+    domain: general_en
+    language: en
+    hub_gated: false
+    hub_license_tag: odc-by
+    license_review: pending
+    status: candidate
+    sampled_documents: 0
+    measured_tokens: null
+
+  - source_id: cci3_hq
+    repo_id: BAAI/CCI3-HQ
+    revision_observed: d6f3aa30cebfef497e822ff968ed68a18bf90b8f
+    subset: null
+    domain: general_zh
+    language: zh
+    hub_gated: auto
+    hub_license_tag: null
+    license_review: pending
+    status: candidate
+    sampled_documents: 0
+    measured_tokens: null
+
+  - source_id: the_stack_v2
+    repo_id: bigcode/the-stack-v2
+    revision_observed: e565caa3a78c2423bd374333a472b049eb090e47
+    subset: null
+    domain: code
+    language: multi
+    hub_gated: auto
+    hub_license_tag: other
+    license_review: per_repository_pending
+    status: candidate
+    sampled_documents: 0
+    measured_tokens: null
+
+  - source_id: finemath
+    repo_id: HuggingFaceTB/finemath
+    revision_observed: e92b25a616738fe95dc186b64dfb19f9c8525594
+    subset: null
+    domain: math_en
+    language: en
+    hub_gated: false
+    hub_license_tag: odc-by
+    license_review: pending
+    status: candidate
+    sampled_documents: 0
+    measured_tokens: null

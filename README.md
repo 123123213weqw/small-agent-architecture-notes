@@ -71,6 +71,7 @@ $$
 ## 文档
 
 - [架构与横向比较方案](docs/architecture-comparison-plan.md)
+- [基础预训练数据规划 v0.1](docs/base-pretraining-data-plan.md)
 - [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
 - [Phase 0A/0B：符号验证方案](docs/phase0-ab-validation.md)
 - [Phase 0B2：从文本预测记忆效用](docs/phase0-b2-text.md)
