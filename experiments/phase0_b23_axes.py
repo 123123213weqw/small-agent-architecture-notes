@@ -30,15 +30,18 @@ DEPTH_CAPACITY = 12
 def relation_episode(index: int, length: int, hops: int) -> Episode:
     """Generate a multi-hop episode with the original distractor distribution."""
     rng = random.Random(23_400_000 + length * 100_000 + hops * 10_000 + index)
-    eid = f"depth_{length}_{hops}_{index}"
+    # Keep the identifier/namespace shape identical to training (e<digits>).
+    # The earlier exploratory generator used a "depth_..." namespace, which
+    # changed every rendered entity prefix and invalidated its two-hop control.
+    eid = f"e{length * 1_000_000 + hops * 10_000 + index}"
     slots: list[Record | None] = [None] * length
     # Match the original task: required records never occupy the endpoints.
-    positions = sorted(rng.sample(range(1, length - 1), hops))
     nodes: list[str] = []
     while len(nodes) < hops + 1:
         token = f"node_{rng.randrange(1_000_000)}"
         if token not in nodes:
             nodes.append(token)
+    positions = sorted(rng.sample(range(1, length - 1), hops))
     required: list[str] = []
     for hop, position in enumerate(positions):
         a, b = nodes[hop], nodes[hop + 1]
@@ -96,7 +99,13 @@ def main():
         if args.axis == "capacity":
             episodes = [paired_episode(index, length, "matched") for index in range(args.episodes)]
         else:
-            episodes = [relation_episode(index, length, hops) for index in range(args.episodes)]
+            # Reuse the already validated B2.3-A episodes as the exact two-hop
+            # control.  Only unseen depths use the generalized generator.
+            episodes = (
+                [paired_episode(index, length, "matched") for index in range(args.episodes)]
+                if hops == 2
+                else [relation_episode(index, length, hops) for index in range(args.episodes)]
+            )
         started = time.perf_counter()
         metrics = rollout(model, config, episodes, capacity, device)
         row = {
