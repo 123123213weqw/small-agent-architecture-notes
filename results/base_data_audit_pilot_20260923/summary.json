@@ -104,7 +104,19 @@
       ],
       "han_character_fraction": 0.0,
       "math_notation_marker": 87,
-      "high_confidence_secret_pattern": 0
+      "high_confidence_secret_pattern": 0,
+      "crawl_year_counts": {
+        "2015": 50,
+        "2016": 50,
+        "2017": 200,
+        "2018": 100,
+        "2019": 150,
+        "2020": 100,
+        "2021": 100,
+        "2022": 200,
+        "2023": 50
+      },
+      "crawl_year_missing": 0
     },
     "fineweb2_hq_zh": {
       "repo_id": "epfml/FineWeb2-HQ",
@@ -206,7 +218,19 @@
       ],
       "han_character_fraction": 0.7929,
       "math_notation_marker": 48,
-      "high_confidence_secret_pattern": 0
+      "high_confidence_secret_pattern": 0,
+      "crawl_year_counts": {
+        "2016": 100,
+        "2017": 50,
+        "2018": 50,
+        "2019": 350,
+        "2020": 200,
+        "2021": 100,
+        "2022": 50,
+        "2023": 50,
+        "2024": 50
+      },
+      "crawl_year_missing": 0
     },
     "finemath_4plus": {
       "repo_id": "HuggingFaceTB/finemath",
@@ -308,7 +332,22 @@
       ],
       "han_character_fraction": 0.0002,
       "math_notation_marker": 904,
-      "high_confidence_secret_pattern": 0
+      "high_confidence_secret_pattern": 0,
+      "crawl_year_counts": {
+        "2013": 14,
+        "2014": 4,
+        "2015": 13,
+        "2016": 44,
+        "2017": 88,
+        "2018": 137,
+        "2019": 93,
+        "2020": 104,
+        "2021": 109,
+        "2022": 92,
+        "2023": 111,
+        "2024": 191
+      },
+      "crawl_year_missing": 0
     },
     "python_edu": {
       "repo_id": "jon-tow/starcoderdata-python-edu",
@@ -380,7 +419,9 @@
       "python_ast_parseable_after_prefix_strip": 950,
       "score_ge_4_python_ast_parseable_after_prefix_strip": 62,
       "distinct_repositories": 993,
-      "high_confidence_secret_pattern": 0
+      "high_confidence_secret_pattern": 0,
+      "crawl_year_counts": {},
+      "crawl_year_missing": 1000
     }
   }
 }

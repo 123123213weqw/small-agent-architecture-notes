@@ -22,6 +22,17 @@
 
 `1,000/1,000` 仅表示**本轮样本内部**没有规范化后完全相同的文本；不能证明全库无重复，更不覆盖跨来源近重复。模板、邮箱和数学模式是粗略正则，可能有误报/漏报；不把“未命中”理解为已完成隐私或污染审查。
 
+### 时间新旧：抓取时间，不等于原文发表时间
+
+| 来源 | 本轮样本抓取/获取年份 | 2023 年及以后 | 时间字段限制 |
+|---|---|---:|---|
+| FineWeb-Edu `sample-10BT` | 2015–2023 | 50/1,000 | 由 `CC-MAIN` 批次推断；这**不能证明**该整个子集没有更新的行 |
+| FineWeb2-HQ 中文 | 2016–2024 | 100/1,000 | `date`/`dump` 是网页抓取时间 |
+| FineMath-4+ | 2013–2024 | 302/1,000 | `fetch_time` 为纳秒 Unix 时间戳，转换为 UTC 年份 |
+| Python-Edu | 未知 | 无法计算 | 当前数据行没有可用时间字段；其上游是 2023 年的 StarCoderData，不能据此给每个代码文件标年 |
+
+这确认了**样本的时效风险**，尤其对 API、依赖、工具调用和代码实践。旧数学基础或通用知识仍可能有价值，不应只按年份一刀切；但现代 Agent/代码目标需要额外审计较新的官方技术文档和代码来源。数据集的**发布/更新年份**与其中**正文被抓取的年份**不可混为一谈。[FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) 的完整集合虽有 2025 年新增快照，本轮选定 `sample-10BT` 的抽样结果仍需要单独评价；[FineWeb2-HQ](https://huggingface.co/datasets/epfml/FineWeb2-HQ) 数据卡明确覆盖 2013–2024 年网页；[Python-Edu](https://huggingface.co/datasets/jon-tow/starcoderdata-python-edu) 是 StarCoderData 的打分版本。
+
 ### Python 代码特别检查
 
 - `int_score` 分布：1 分 91、2 分 495、3 分 347、4 分 65、5 分 2。`≥4` 仅占样本文档 **6.7%**，占样本文本字符约 **3.9%**；这不是 tokenizer 的 token 比例，也不应直接外推全库可用 token。

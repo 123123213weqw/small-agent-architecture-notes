@@ -1,6 +1,6 @@
 import unittest
 
-from experiments.base_data_audit import strip_python_metadata_prefix, summarize
+from experiments.base_data_audit import crawl_year, strip_python_metadata_prefix, summarize
 
 
 class BaseDataAuditTests(unittest.TestCase):
@@ -22,6 +22,12 @@ class BaseDataAuditTests(unittest.TestCase):
         self.assertEqual(result["python_ast_parseable_raw"], 0)
         self.assertEqual(result["python_ast_parseable_after_prefix_strip"], 1)
         self.assertEqual(result["score_ge_4_python_ast_parseable_after_prefix_strip"], 1)
+
+    def test_crawl_year_is_collection_time(self):
+        self.assertEqual(crawl_year({"dump": "CC-MAIN-2022-49"}), 2022)
+        self.assertEqual(crawl_year({"date": "2024-03-01T00:00:00Z"}), 2024)
+        self.assertEqual(crawl_year({"fetch_time": 1725765787000000000}), 2024)
+        self.assertIsNone(crawl_year({"content": "print(1)"}))
 
 
 if __name__ == "__main__":

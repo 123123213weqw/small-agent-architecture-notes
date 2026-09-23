@@ -29,7 +29,7 @@ python3 experiments/base_data_review.py materialize \
 请阅读全文，而非只看开头。将索引 CSV 复制到自己的工作目录，填写以下列：
 
 - `decision`: `accept` / `repair` / `reject` / `uncertain`。`accept` 意味着内容本身有用且结构完整；**不代表许可已经批准**。
-- `reason`: 可用逗号分隔的原因，例如 `off_topic`, `boilerplate`, `seo`, `wrong_language`, `too_short`, `truncated`, `repetitive`, `formula_corrupt`, `answer_missing`, `code_fragment`, `generated_file`, `pii`, `license_unknown`, `eval_overlap`。
+- `reason`: 可用逗号分隔的原因，例如 `off_topic`, `boilerplate`, `seo`, `wrong_language`, `too_short`, `truncated`, `repetitive`, `formula_corrupt`, `answer_missing`, `code_fragment`, `generated_file`, `outdated`, `pii`, `license_unknown`, `eval_overlap`。其中 `outdated` 应基于正文中的过时 API/事实判断，不能只凭抓取年份。
 - `notes`: 简短中文判断依据，不复制长篇原文或敏感信息。
 
 重点核查：FineWeb-Edu 是否真正提供解释性文本；FineWeb2-HQ 中文是否通顺、有信息量、不过度新闻/营销化；FineMath 的题目、公式和答案是否完整；Python 的 3 分与 4 分内容是否值得训练、元数据前缀是否可清洗。**不要运行来源代码。**

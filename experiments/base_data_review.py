@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime
 import hashlib
 import json
 import random
@@ -25,13 +26,24 @@ TEXT_KEY = {
 QUEUE_FIELDS = [
     "source_id", "dataset", "config", "split", "revision_observed",
     "window_offset", "row_idx", "stratum", "stratum_population",
-    "length_bin", "score", "text_chars", "normalized_sha256",
+    "length_bin", "score", "crawl_year", "text_chars", "normalized_sha256",
     "decision", "reason", "notes",
 ]
 
 
 def digest(text: str) -> str:
     return hashlib.sha256(re.sub(r"\s+", " ", text).strip().encode()).hexdigest()
+
+
+def crawl_year(row: dict) -> int | None:
+    fetch_time = row.get("fetch_time")
+    if isinstance(fetch_time, (int, float)):
+        return datetime.datetime.fromtimestamp(fetch_time / 1_000_000_000, datetime.timezone.utc).year
+    for key in ("date", "dump"):
+        match = re.search(r"20\d{2}", str(row.get(key) or ""))
+        if match:
+            return int(match.group())
+    return None
 
 
 def select_rows(records: list[dict], source_id: str, seed: int) -> list[tuple[dict, str, int, int]]:
@@ -100,6 +112,7 @@ def prepare(samples: Path, summary_path: Path, queue_path: Path, seed: int) -> N
                     "stratum_population": population,
                     "length_bin": length_bin,
                     "score": row.get("score", row.get("quality_score")),
+                    "crawl_year": crawl_year(row),
                     "text_chars": len(content),
                     "normalized_sha256": digest(content),
                     "decision": "",

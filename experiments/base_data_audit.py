@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import datetime
 import hashlib
 import json
 import random
@@ -79,6 +80,21 @@ def repeated_line_fraction(text: str) -> float:
     return 1 - len(set(lines)) / len(lines)
 
 
+def crawl_year(row: dict) -> int | None:
+    """Return collection/fetch year, not the document's original publication year."""
+    fetch_time = row.get("fetch_time")
+    if isinstance(fetch_time, (int, float)):
+        try:
+            return datetime.datetime.fromtimestamp(fetch_time / 1_000_000_000, datetime.timezone.utc).year
+        except (OverflowError, OSError, ValueError):
+            return None
+    for key in ("date", "dump"):
+        match = re.search(r"20\d{2}", str(row.get(key) or ""))
+        if match:
+            return int(match.group())
+    return None
+
+
 def summarize(records: list[dict], text_key: str) -> dict:
     texts = [record["row"].get(text_key, "") or "" for record in records]
     hashes = [hashlib.sha256(re.sub(r"\s+", " ", text).strip().encode()).hexdigest() for text in texts]
@@ -86,6 +102,7 @@ def summarize(records: list[dict], text_key: str) -> dict:
     scores = [float(score) for score in scores if isinstance(score, (int, float))]
     domains = Counter(urlparse(record["row"].get("url", "")).netloc.lower() for record in records)
     domains.pop("", None)
+    year_counts = Counter(crawl_year(record["row"]) for record in records)
     common = {
         "sampled_records": len(records),
         "total_text_characters": sum(map(len, texts)),
@@ -106,6 +123,8 @@ def summarize(records: list[dict], text_key: str) -> dict:
             for text in texts
         ),
         "top_url_domains": domains.most_common(10),
+        "crawl_year_counts": {str(year): year_counts[year] for year in sorted(year_counts) if year is not None},
+        "crawl_year_missing": year_counts[None],
     }
     if text_key == "content":
         score_counts = Counter(str(record["row"].get("int_score")) for record in records)
