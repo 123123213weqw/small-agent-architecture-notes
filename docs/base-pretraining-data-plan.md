@@ -25,6 +25,8 @@
 
 可机读的初始候选与 Hub 版本快照见 [base-data-sources-v0.yaml](base-data-sources-v0.yaml)；其中的版本只是观察值，正式抽样前还需锁定子集并复核许可。
 
+首次逐项核查见[四个基础语料候选的首次核查](base-data-source-review-2026-09-23.md)。其中两个来源在当前账号下不能读取数据文件；不要把四项都当成已经可用的数据。
+
 | 来源 | 候选桶 | 当前待查问题 |
 |---|---|---|
 | [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | 英文通用/教育文本 | 抽样质量、网页模板、与其他语料重复 |

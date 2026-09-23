@@ -5,10 +5,11 @@ sources:
   - source_id: fineweb_edu
     repo_id: HuggingFaceFW/fineweb-edu
     revision_observed: 87f09149ef4734204d70ed1d046ddc9ca3f2b8f9
-    subset: null
+    subset: sample-10BT
     domain: general_en
     language: en
     hub_gated: false
+    account_data_access: granted
     hub_license_tag: odc-by
     license_review: pending
     status: candidate
@@ -22,6 +23,7 @@ sources:
     domain: general_zh
     language: zh
     hub_gated: auto
+    account_data_access: denied
     hub_license_tag: null
     license_review: pending
     status: candidate
@@ -35,6 +37,7 @@ sources:
     domain: code
     language: multi
     hub_gated: auto
+    account_data_access: denied
     hub_license_tag: other
     license_review: per_repository_pending
     status: candidate
@@ -44,10 +47,11 @@ sources:
   - source_id: finemath
     repo_id: HuggingFaceTB/finemath
     revision_observed: e92b25a616738fe95dc186b64dfb19f9c8525594
-    subset: null
+    subset: finemath-4plus
     domain: math_en
     language: en
     hub_gated: false
+    account_data_access: granted
     hub_license_tag: odc-by
     license_review: pending
     status: candidate
