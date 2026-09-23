@@ -23,19 +23,19 @@
 
 ## 3. 首轮候选来源，不等于批准使用
 
-可机读的初始候选与 Hub 版本快照见 [base-data-sources-v0.yaml](base-data-sources-v0.yaml)；其中的版本只是观察值，正式抽样前还需锁定子集并复核许可。
+可机读的当前候选与 Hub 版本观察值见 [base-data-sources-v0.yaml](base-data-sources-v0.yaml)。第一轮[每源 1,000 条审计](base-data-audit-pilot-2026-09-23.md)已开始；正式入库前还需锁定不可变 revision、复核许可和完成质量筛选。
 
-首次逐项核查见[四个基础语料候选的首次核查](base-data-source-review-2026-09-23.md)。其中两个来源在当前账号下不能读取数据文件；不要把四项都当成已经可用的数据。
+最初候选的逐项核查见[首次来源核查](base-data-source-review-2026-09-23.md)。原方案的 CCI3-HQ 与 The Stack v2 暂缓；下表是**当前四个可抽样候选**，仍都没有获准进入训练。
 
 | 来源 | 候选桶 | 当前待查问题 |
 |---|---|---|
 | [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | 英文通用/教育文本 | 抽样质量、网页模板、与其他语料重复 |
-| [CCI3-HQ](https://huggingface.co/datasets/BAAI/CCI3-HQ) | 中文通用文本 | 访问条件、实际内容质量、可用子集 |
-| [The Stack v2](https://huggingface.co/datasets/bigcode/the-stack-v2) | Python/Shell 代码 | 原仓库逐项许可、归属信息、泄漏与重复 |
+| [FineWeb2-HQ `cmn_Hani`](https://huggingface.co/datasets/epfml/FineWeb2-HQ) | 中文通用文本 | 新闻/论坛/模板比例、繁简覆盖、质量分数含义 |
+| [starcoderdata-python-edu](https://huggingface.co/datasets/jon-tow/starcoderdata-python-edu) | Python 代码 | 高分可用量、元数据前缀、语法、原仓库许可与污染 |
 | [FineMath](https://huggingface.co/datasets/HuggingFaceTB/finemath) | 英文数学文本 | 难度是否适合小模型、答案质量、网页重复 |
 | 官方技术文档与教学材料 | 技术文档 | 逐站点许可、版本、抓取与结构保留方式 |
 
-代码数据不能只看集合级标签：The Stack v2 的数据卡要求遵守原仓库许可。CCI3-HQ 在 Hugging Face 上需要完成访问条件。任何来源未过审前，状态只能是 `candidate`。
+代码数据不能只看集合级标签：新 Python 候选继承自 StarCoder 训练数据，需独立核查原仓库许可和移除机制。CCI3-HQ 与 The Stack v2 的限制仍记在历史核查中。任何来源未过审前，状态只能是 `candidate` 或 `sampled`，不能标记 `approved`。
 
 ## 4. 数据清单格式
 

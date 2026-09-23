@@ -1,0 +1,386 @@
+{
+  "seed": 20260923,
+  "batches": 20,
+  "batch_size": 50,
+  "method": "uniform random row offsets; contiguous rows within each batch",
+  "sources": {
+    "fineweb_edu": {
+      "repo_id": "HuggingFaceFW/fineweb-edu",
+      "config": "sample-10BT",
+      "observed_revision": "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9",
+      "rows_total": 9672101,
+      "offsets": [
+        21775,
+        812328,
+        857185,
+        911515,
+        934795,
+        1031910,
+        3507983,
+        3602527,
+        3609533,
+        4260696,
+        4822302,
+        6882049,
+        7752554,
+        7785566,
+        8009045,
+        8085916,
+        8231680,
+        8280816,
+        9018939,
+        9119743
+      ],
+      "sampled_records": 1000,
+      "total_text_characters": 4641297,
+      "unique_normalized_hashes": 1000,
+      "text_char_lengths": {
+        "min": 317,
+        "p10": 950,
+        "median": 2955,
+        "p90": 8700,
+        "max": 111459
+      },
+      "text_utf8_bytes": {
+        "min": 317,
+        "p10": 954,
+        "median": 2961,
+        "p90": 8758,
+        "max": 111749
+      },
+      "score": {
+        "min": 2.516,
+        "p10": 2.562,
+        "median": 2.891,
+        "p90": 3.641,
+        "max": 4.375
+      },
+      "shorter_than_200_chars": 0,
+      "longer_than_50000_chars": 4,
+      "high_repeated_line_fraction_over_0_2": 0,
+      "html_or_boilerplate_marker": 10,
+      "email_like_marker": 20,
+      "top_url_domains": [
+        [
+          "www.newscientist.com",
+          4
+        ],
+        [
+          "www.physicsforums.com",
+          4
+        ],
+        [
+          "en.wikipedia.org",
+          4
+        ],
+        [
+          "journals.plos.org",
+          2
+        ],
+        [
+          "www.gradesaver.com",
+          2
+        ],
+        [
+          "espace.curtin.edu.au",
+          2
+        ],
+        [
+          "www.wired.com",
+          2
+        ],
+        [
+          "mashable.com",
+          2
+        ],
+        [
+          "oxfordindex.oup.com",
+          2
+        ],
+        [
+          "www.cdc.gov",
+          2
+        ]
+      ],
+      "han_character_fraction": 0.0,
+      "math_notation_marker": 87,
+      "high_confidence_secret_pattern": 0
+    },
+    "fineweb2_hq_zh": {
+      "repo_id": "epfml/FineWeb2-HQ",
+      "config": "cmn_Hani",
+      "observed_revision": "c0c06e94fd3a44ae9e802b2b0fc533817601eb5e",
+      "rows_total": 54211986,
+      "offsets": [
+        83488,
+        2253927,
+        4757840,
+        12126187,
+        13645030,
+        16838707,
+        20494289,
+        20572183,
+        24474803,
+        25048959,
+        28357686,
+        29293241,
+        29484915,
+        31434516,
+        32427862,
+        37323340,
+        43110994,
+        43382313,
+        43891518,
+        48499771
+      ],
+      "sampled_records": 1000,
+      "total_text_characters": 1397290,
+      "unique_normalized_hashes": 1000,
+      "text_char_lengths": {
+        "min": 103,
+        "p10": 281,
+        "median": 750,
+        "p90": 3278,
+        "max": 17223
+      },
+      "text_utf8_bytes": {
+        "min": 295,
+        "p10": 765,
+        "median": 2061,
+        "p90": 8999,
+        "max": 46242
+      },
+      "score": {
+        "min": 0.003,
+        "p10": 0.004,
+        "median": 0.017,
+        "p90": 0.243,
+        "max": 0.982
+      },
+      "shorter_than_200_chars": 38,
+      "longer_than_50000_chars": 0,
+      "high_repeated_line_fraction_over_0_2": 0,
+      "html_or_boilerplate_marker": 9,
+      "email_like_marker": 20,
+      "top_url_domains": [
+        [
+          "www.voachinese.com",
+          13
+        ],
+        [
+          "www.militaryy.cn",
+          5
+        ],
+        [
+          "www.enanyang.my",
+          4
+        ],
+        [
+          "www.jttop.net",
+          4
+        ],
+        [
+          "www.xbshare.com",
+          4
+        ],
+        [
+          "bbs.tiexue.net",
+          4
+        ],
+        [
+          "www.163.com",
+          4
+        ],
+        [
+          "www.minghui.org",
+          3
+        ],
+        [
+          "www.zikao365.com",
+          3
+        ],
+        [
+          "www.asiatimes.com.my",
+          3
+        ]
+      ],
+      "han_character_fraction": 0.7929,
+      "math_notation_marker": 48,
+      "high_confidence_secret_pattern": 0
+    },
+    "finemath_4plus": {
+      "repo_id": "HuggingFaceTB/finemath",
+      "config": "finemath-4plus",
+      "observed_revision": "e92b25a616738fe95dc186b64dfb19f9c8525594",
+      "rows_total": 6699493,
+      "offsets": [
+        125006,
+        1188113,
+        1881164,
+        1972844,
+        2160950,
+        2649231,
+        3428871,
+        3433412,
+        3477182,
+        3490054,
+        3494784,
+        3532631,
+        3834656,
+        4318712,
+        4498621,
+        4523008,
+        4667348,
+        5227563,
+        5263225,
+        5507692
+      ],
+      "sampled_records": 1000,
+      "total_text_characters": 4682190,
+      "unique_normalized_hashes": 1000,
+      "text_char_lengths": {
+        "min": 151,
+        "p10": 881,
+        "median": 2807,
+        "p90": 9444,
+        "max": 127354
+      },
+      "text_utf8_bytes": {
+        "min": 152,
+        "p10": 892,
+        "median": 2817,
+        "p90": 9524,
+        "max": 129781
+      },
+      "score": {
+        "min": 3.5,
+        "p10": 3.562,
+        "median": 3.891,
+        "p90": 4.469,
+        "max": 5.031
+      },
+      "shorter_than_200_chars": 4,
+      "longer_than_50000_chars": 3,
+      "high_repeated_line_fraction_over_0_2": 81,
+      "html_or_boilerplate_marker": 5,
+      "email_like_marker": 14,
+      "top_url_domains": [
+        [
+          "math.stackexchange.com",
+          48
+        ],
+        [
+          "mathhelpforum.com",
+          45
+        ],
+        [
+          "www.physicsforums.com",
+          44
+        ],
+        [
+          "www.jiskha.com",
+          26
+        ],
+        [
+          "www.coursehero.com",
+          20
+        ],
+        [
+          "www.gradesaver.com",
+          18
+        ],
+        [
+          "oeis.org",
+          14
+        ],
+        [
+          "socratic.org",
+          14
+        ],
+        [
+          "gmatclub.com",
+          12
+        ],
+        [
+          "nrich.maths.org",
+          12
+        ]
+      ],
+      "han_character_fraction": 0.0002,
+      "math_notation_marker": 904,
+      "high_confidence_secret_pattern": 0
+    },
+    "python_edu": {
+      "repo_id": "jon-tow/starcoderdata-python-edu",
+      "config": "default",
+      "observed_revision": "67bd30e21b92296da7d2ee05c8f9d8ee16ba0129",
+      "rows_total": 12866649,
+      "offsets": [
+        222820,
+        1352213,
+        1541810,
+        2041039,
+        2208385,
+        2349024,
+        4102720,
+        4785315,
+        4833244,
+        5051609,
+        5545683,
+        6644489,
+        7613360,
+        8723241,
+        10056770,
+        10269371,
+        11298400,
+        11847866,
+        11918015,
+        12658324
+      ],
+      "sampled_records": 1000,
+      "total_text_characters": 4732254,
+      "unique_normalized_hashes": 1000,
+      "text_char_lengths": {
+        "min": 23,
+        "p10": 307,
+        "median": 2043,
+        "p90": 10224,
+        "max": 140228
+      },
+      "text_utf8_bytes": {
+        "min": 23,
+        "p10": 307,
+        "median": 2043,
+        "p90": 10226,
+        "max": 140228
+      },
+      "score": {
+        "min": 0.742,
+        "p10": 1.555,
+        "median": 2.406,
+        "p90": 3.281,
+        "max": 4.688
+      },
+      "shorter_than_200_chars": 56,
+      "longer_than_50000_chars": 9,
+      "high_repeated_line_fraction_over_0_2": 106,
+      "html_or_boilerplate_marker": 42,
+      "email_like_marker": 2,
+      "top_url_domains": [],
+      "int_score_counts": {
+        "1": 91,
+        "2": 495,
+        "3": 347,
+        "4": 65,
+        "5": 2
+      },
+      "score_ge_4_count": 67,
+      "python_metadata_prefix_count": 489,
+      "python_ast_parseable_raw": 484,
+      "python_ast_parseable_after_prefix_strip": 950,
+      "score_ge_4_python_ast_parseable_after_prefix_strip": 62,
+      "distinct_repositories": 993,
+      "high_confidence_secret_pattern": 0
+    }
+  }
+}
