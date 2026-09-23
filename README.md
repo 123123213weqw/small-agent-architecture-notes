@@ -74,6 +74,7 @@ $$
 - [基础预训练数据规划 v0.1](docs/base-pretraining-data-plan.md)
 - [四个基础语料候选的首次核查](docs/base-data-source-review-2026-09-23.md)
 - [基础预训练数据审计：第一轮 4,000 条随机样本](docs/base-data-audit-pilot-2026-09-23.md)
+- [基础数据人工复核包：400 条索引与审核说明](docs/base-data-human-review-guide.md)
 - [效用巩固记忆 v1：冻结的最小原型](docs/utility-consolidation-memory-v1.md)
 - [Phase 0A/0B：符号验证方案](docs/phase0-ab-validation.md)
 - [Phase 0B2：从文本预测记忆效用](docs/phase0-b2-text.md)
