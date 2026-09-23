@@ -1,6 +1,6 @@
-# 基础预训练数据规划 v0.1
+# 基础预训练数据规划 v0.2
 
-> 状态：规划与候选来源审计；尚未批准任何数据源，也尚未开始全量下载。
+> 状态：重新选源；此前四源小样本及审核包已撤销。尚未批准任何数据源，也尚未开始全量下载。
 >
 > 范围：从头训练共享基础语言模型。此阶段不训练记忆选择器，不使用未来效用标签，也不把 Phase 0 的合成关系链当作主要预训练语料。
 
@@ -21,33 +21,25 @@
 
 这四层是**来源桶**，不是互斥的能力标签。一个网页可能同时包含数学和代码；入库时指定主来源桶，并在全库去重，避免同一文本被多次采样。指令微调、工具调用轨迹和长期记忆任务另建数据集与配方，不在这一轮混入基础预训练的质量统计。
 
-## 3. 首轮候选来源，不等于批准使用
+## 3. 重新选源
 
-可机读的当前候选与 Hub 版本观察值见 [base-data-sources-v0.yaml](base-data-sources-v0.yaml)。第一轮[每源 1,000 条审计](base-data-audit-pilot-2026-09-23.md)已开始；正式入库前还需锁定不可变 revision、复核许可和完成质量筛选。
+此前的四个未经人工标注的网页/代码候选、抽样文件、审计清单和审核索引已经撤销。当前**没有数据源获准训练**。下一轮先核查 Hugging Face 上已有质量标注或人工复核的数据，但不能把数据集页面的“高质量”标签等同于每篇都由人审核过：需要明确标签是人工、模型、规则还是合成，并检查标注目标是否与基础预训练一致。
 
-最初候选的逐项核查见[首次来源核查](base-data-source-review-2026-09-23.md)。原方案的 CCI3-HQ 与 The Stack v2 暂缓；下表是**当前四个可抽样候选**，仍都没有获准进入训练。
-
-| 来源 | 候选桶 | 当前待查问题 |
-|---|---|---|
-| [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | 英文通用/教育文本 | 抽样质量、网页模板、与其他语料重复 |
-| [FineWeb2-HQ `cmn_Hani`](https://huggingface.co/datasets/epfml/FineWeb2-HQ) | 中文通用文本 | 新闻/论坛/模板比例、繁简覆盖、质量分数含义 |
-| [starcoderdata-python-edu](https://huggingface.co/datasets/jon-tow/starcoderdata-python-edu) | Python 代码 | 高分可用量、元数据前缀、语法、原仓库许可与污染 |
-| [FineMath](https://huggingface.co/datasets/HuggingFaceTB/finemath) | 英文数学文本 | 难度是否适合小模型、答案质量、网页重复 |
-| 官方技术文档与教学材料 | 技术文档 | 逐站点许可、版本、抓取与结构保留方式 |
-
-代码数据不能只看集合级标签：新 Python 候选继承自 StarCoder 训练数据，需独立核查原仓库许可和移除机制。CCI3-HQ 与 The Stack v2 的限制仍记在历史核查中。任何来源未过审前，状态只能是 `candidate` 或 `sampled`，不能标记 `approved`。
+候选分开评估：①持续下一 token 预训练的大规模正文；②代码/数学/技术文档补充；③指令、工具调用、偏好等 SFT 阶段数据。不能因为某个指令集有高质量问答标注，就直接把它当成从零训练 1B 基座的全部语料。锁定来源前不下载全集，不设训练比例。
 
 ## 4. 数据清单格式
 
 清单放 Git，只保存元数据，不放大体积原文。每个来源至少记录：
 
 ```yaml
-source_id: fineweb_edu_sample
-url: https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu
+source_id: candidate_id
+url: https://huggingface.co/datasets/namespace/name
 revision: null              # 审计通过后填写精确 commit/revision
 subset: null
 domain: general_en
 language: en
+label_provenance: unknown    # human / model / rule / synthetic / mixed
+collection_period: null
 license_review: pending
 access: public
 status: candidate           # candidate / sampled / approved / rejected
