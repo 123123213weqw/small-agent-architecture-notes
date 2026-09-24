@@ -242,24 +242,58 @@ def validate_configuration(
     data_dir = resolve_path(root, run_config["data_dir"])
     manifest_path = data_dir / "manifest.json"
     data_manifest = load_json(manifest_path)
-    if data_manifest.get("dtype") != "uint16":
-        raise PreflightError(f"unsupported token dtype: {data_manifest.get('dtype')!r}")
+    reader = run_config.get("data_reader", "indexed_v1")
+    expected_dtype = "uint16-le" if reader == "sharded_v1" else "uint16"
+    if data_manifest.get("dtype") != expected_dtype:
+        raise PreflightError(f"unsupported token dtype for {reader}: {data_manifest.get('dtype')!r}")
     if int(data_manifest.get("vocab_size", -1)) != int(model_config["vocab_size"]):
         raise PreflightError("data/model vocab_size mismatch")
     if int(data_manifest.get("eos_token_id", -1)) != int(model_config["eos_token_id"]):
         raise PreflightError("data/model eos_token_id mismatch")
-    for split in ("train", "validation"):
-        entry = data_manifest.get("splits", {}).get(split)
-        if not isinstance(entry, dict):
-            raise PreflightError(f"data manifest is missing {split!r} split")
-        path = data_dir / entry["file"]
-        if not path.is_file():
-            raise PreflightError(f"missing {split} token stream: {path}")
-        if path.stat().st_size != int(entry["bytes"]):
-            raise PreflightError(f"{split} token stream byte count mismatch")
-        actual_hash = sha256_file(path)
-        if actual_hash != entry["sha256"]:
-            raise PreflightError(f"{split} token stream SHA-256 mismatch")
+    if reader == "sharded_v1":
+        if data_manifest.get("version") != "sharded_token_stream_v1":
+            raise PreflightError("unsupported sharded manifest version")
+        if int(data_manifest.get("sequence_length", -1)) != int(run_config["context_length"]):
+            raise PreflightError("shard sequence length differs from run context length")
+        if data_manifest.get("index_dtype") != "<QII":
+            raise PreflightError("unsupported shard index dtype")
+        splits_seen: set[str] = set()
+        for expected_id, entry in enumerate(data_manifest.get("shards", [])):
+            if int(entry["shard_id"]) != expected_id:
+                raise PreflightError("shard IDs are not ordered and contiguous")
+            splits_seen.add(entry["split"])
+            for kind, width, count_key in (("bin", 2, "tokens"), ("idx", 16, "samples")):
+                filename = str(entry[kind])
+                if Path(filename).name != filename or filename in {".", ".."}:
+                    raise PreflightError(f"unsafe shard filename: {filename}")
+                path = data_dir / filename
+                if not path.is_file():
+                    raise PreflightError(f"missing shard file: {path}")
+                expected_bytes = int(entry[count_key]) * width
+                if int(entry[f"{kind}_bytes"]) != expected_bytes or path.stat().st_size != expected_bytes:
+                    raise PreflightError(f"shard {kind} byte count mismatch: {path}")
+                if sha256_file(path) != entry[f"{kind}_sha256"]:
+                    raise PreflightError(f"shard {kind} SHA-256 mismatch: {path}")
+        if not {"train", "validation"}.issubset(splits_seen):
+            raise PreflightError("sharded data is missing train/validation")
+        tokenizer_json = run_config.get("tokenizer_json")
+        if tokenizer_json and sha256_file(resolve_path(root, tokenizer_json)) != data_manifest.get("tokenizer_sha256"):
+            raise PreflightError("tokenizer JSON SHA-256 differs from sharded data")
+    elif reader == "indexed_v1":
+        for split in ("train", "validation"):
+            entry = data_manifest.get("splits", {}).get(split)
+            if not isinstance(entry, dict):
+                raise PreflightError(f"data manifest is missing {split!r} split")
+            path = data_dir / entry["file"]
+            if not path.is_file():
+                raise PreflightError(f"missing {split} token stream: {path}")
+            if path.stat().st_size != int(entry["bytes"]):
+                raise PreflightError(f"{split} token stream byte count mismatch")
+            actual_hash = sha256_file(path)
+            if actual_hash != entry["sha256"]:
+                raise PreflightError(f"{split} token stream SHA-256 mismatch")
+    else:
+        raise PreflightError(f"unsupported data reader: {reader}")
     eligible = data_manifest.get("license_gate", {}).get("training_eligible")
     stage = str(data_manifest.get("stage", ""))
     if eligible is False and not (

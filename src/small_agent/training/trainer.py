@@ -23,7 +23,13 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
 
-from small_agent.data import IndexedTokenDataset, StatefulDistributedSampler
+from small_agent.data import (
+    DeterministicMixtureSchedule,
+    IndexedTokenDataset,
+    MixtureDistributedSampler,
+    ShardedTokenDataset,
+    StatefulDistributedSampler,
+)
 from small_agent.evaluation import evaluate_causal_lm
 from small_agent.models import build_model, load_model_spec
 from small_agent.training.checkpoint import (
@@ -159,6 +165,24 @@ def infinite_train_batches(
         sampler.set_epoch(sampler.epoch + 1)
 
 
+def sharded_train_batches(
+    dataset: ShardedTokenDataset,
+    sampler: MixtureDistributedSampler,
+    batch_size: int,
+    loader_generator: torch.Generator,
+) -> Iterator[dict[str, torch.Tensor]]:
+    """An infinite sampler; constructing the loader lazily permits checkpoint restore first."""
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        sampler=sampler,
+        num_workers=0,
+        pin_memory=True,
+        generator=loader_generator,
+    )
+    yield from loader
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-config", type=Path, required=True)
@@ -210,28 +234,49 @@ def main() -> None:
     device = torch.device("cuda", local_rank)
 
     try:
-        train_dataset = IndexedTokenDataset(
-            data_dir, "train", context_length, tail_policy="drop"
-        )
-        validation_dataset = IndexedTokenDataset(
-            data_dir, "validation", context_length, tail_policy="pad"
-        )
-        train_sampler = StatefulDistributedSampler(
-            len(train_dataset),
-            num_replicas=world_size,
-            rank=rank,
-            seed=seed,
-            shuffle=True,
-            drop_last=True,
-            samples_per_rank_multiple=micro_batch_size * accumulation_steps,
-        )
+        reader = run_config.get("data_reader", "indexed_v1")
+        if reader == "sharded_v1":
+            train_dataset = ShardedTokenDataset(data_dir, "train", context_length)
+            validation_dataset = ShardedTokenDataset(data_dir, "validation", context_length)
+            schedule = DeterministicMixtureSchedule(
+                train_dataset,
+                seed=seed,
+                block_size=int(run_config.get("mixture_block_size", 1000)),
+            )
+            train_sampler = MixtureDistributedSampler(
+                schedule,
+                num_replicas=world_size,
+                rank=rank,
+                micro_batch_size=micro_batch_size,
+                gradient_accumulation_steps=accumulation_steps,
+            )
+        elif reader == "indexed_v1":
+            train_dataset = IndexedTokenDataset(
+                data_dir, "train", context_length, tail_policy="drop"
+            )
+            validation_dataset = IndexedTokenDataset(
+                data_dir, "validation", context_length, tail_policy="pad"
+            )
+            train_sampler = StatefulDistributedSampler(
+                len(train_dataset),
+                num_replicas=world_size,
+                rank=rank,
+                seed=seed,
+                shuffle=True,
+                drop_last=True,
+                samples_per_rank_multiple=micro_batch_size * accumulation_steps,
+            )
+        else:
+            raise ValueError(f"unsupported data reader: {reader}")
         train_loader_generator = torch.Generator().manual_seed(seed + 10_000 + rank)
-        train_batches = infinite_train_batches(
-            train_dataset,
-            train_sampler,
-            micro_batch_size,
-            train_loader_generator,
-        )
+        if reader == "sharded_v1":
+            train_batches = sharded_train_batches(
+                train_dataset, train_sampler, micro_batch_size, train_loader_generator
+            )
+        else:
+            train_batches = infinite_train_batches(
+                train_dataset, train_sampler, micro_batch_size, train_loader_generator
+            )
         validation_subset = Subset(
             validation_dataset, range(rank, len(validation_dataset), world_size)
         )
@@ -301,6 +346,9 @@ def main() -> None:
             "gradient_accumulation_steps": accumulation_steps,
             "gradient_checkpointing": bool(run_config.get("gradient_checkpointing", False)),
         }
+        if reader == "sharded_v1":
+            compatibility["data_reader"] = reader
+            compatibility["mixture_block_size"] = schedule.block_size
         if distributed:
             compatibility.update(
                 {
@@ -340,12 +388,24 @@ def main() -> None:
                 "sha256": sha256_file(data_dir / "manifest.json"),
             },
             "train_coverage": train_dataset.coverage_report(),
-            "train_sampler": {
-                "samples_per_rank": train_sampler.num_samples,
-                "global_samples_per_epoch": train_sampler.total_size,
-                "dropped_samples_per_epoch": len(train_dataset) - train_sampler.total_size,
-                "samples_per_rank_multiple": train_sampler.samples_per_rank_multiple,
-            },
+            "train_sampler": (
+                {
+                    "type": "sharded_mixture_v1",
+                    "mixture": train_dataset.manifest["mixture"],
+                    "mixture_block_size": schedule.block_size,
+                    "mixture_counts": schedule.counts,
+                    "global_samples_per_optimizer_step": train_sampler.global_step_samples,
+                    "cursor_semantics": "committed_global_position_only",
+                }
+                if reader == "sharded_v1"
+                else {
+                    "type": "stateful_distributed_v2",
+                    "samples_per_rank": train_sampler.num_samples,
+                    "global_samples_per_epoch": train_sampler.total_size,
+                    "dropped_samples_per_epoch": len(train_dataset) - train_sampler.total_size,
+                    "samples_per_rank_multiple": train_sampler.samples_per_rank_multiple,
+                }
+            ),
             "validation_coverage": validation_dataset.coverage_report(),
         }
         start_step = 0
@@ -487,6 +547,8 @@ def main() -> None:
             global_step_tokens = reduce_sum_int(step_tokens, device)
             learning_rate = scheduler.step(global_step_tokens)
             optimizer.step()
+            if reader == "sharded_v1":
+                train_sampler.commit_step()
             if profiler is not None:
                 profiler.step()
             window_loss += step_loss

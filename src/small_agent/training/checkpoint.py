@@ -270,6 +270,12 @@ def save_distributed_full_checkpoint(
     _distributed_context(rank, world_size)
     if step < 0 or keep < 1:
         raise ValueError("step must be non-negative and keep must be positive")
+    if hasattr(sampler, "global_commit_fingerprint"):
+        fingerprint = sampler.global_commit_fingerprint()
+        fingerprints: list[Any] = [None] * world_size
+        dist.all_gather_object(fingerprints, fingerprint)
+        if any(item != fingerprint for item in fingerprints):
+            raise ValueError("DDP ranks disagree on committed data position")
 
     final = checkpoints_dir / f"step_{step:08d}"
     initialization: list[Any] = [None, None]
@@ -458,4 +464,10 @@ def load_distributed_full_checkpoint(
     failures = [error for error in rank_errors if error is not None]
     if failures:
         raise RuntimeError("distributed checkpoint load failed: " + "; ".join(failures))
+    if hasattr(sampler, "global_commit_fingerprint"):
+        fingerprint = sampler.global_commit_fingerprint()
+        fingerprints: list[Any] = [None] * world_size
+        dist.all_gather_object(fingerprints, fingerprint)
+        if any(item != fingerprint for item in fingerprints):
+            raise ValueError("restored DDP ranks disagree on committed data position")
     return manifest
