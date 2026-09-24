@@ -1,0 +1,79 @@
+{
+  "version": "infra_m7_ddp_checkpoint_resume_v1",
+  "date": "2026-09-24",
+  "stage": "engineering_only",
+  "configuration": {
+    "world_size": 8,
+    "context_length": 4096,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 4,
+    "gradient_checkpointing": false,
+    "communication_hook": "bf16",
+    "checkpoint_step": 10,
+    "comparison_steps": [
+      11,
+      20
+    ]
+  },
+  "checkpoint": {
+    "version": "small_agent_distributed_full_checkpoint_v1",
+    "world_size": 8,
+    "artifacts": 19,
+    "total_bytes": 12063020199,
+    "total_gib": 11.234563029371202,
+    "source_save_seconds_step10": 23.761,
+    "source_save_seconds_step20": 23.344,
+    "branch_save_seconds_step20": 22.757,
+    "source_step10_model_sha256": "45cf512194f90949d2a10345c477fa5545634af23e1d0f50f9574ef8dc296890",
+    "branch_step10_model_sha256": "45cf512194f90949d2a10345c477fa5545634af23e1d0f50f9574ef8dc296890",
+    "step10_checkpoint_artifacts_identical": true
+  },
+  "resume": {
+    "event_present": true,
+    "completed_step": 20,
+    "tokens_seen": 2620800
+  },
+  "data_cursor": {
+    "exact_match_steps_11_20": true,
+    "learning_rate_exact_match_steps_11_20": true,
+    "step20": {
+      "source": {
+        "epoch": 2,
+        "sampler_cursor": 16,
+        "tokens_seen": 2620800
+      },
+      "resumed": {
+        "epoch": 2,
+        "sampler_cursor": 16,
+        "tokens_seen": 2620800
+      }
+    }
+  },
+  "numerical_comparison_steps_11_20": {
+    "maximum_absolute_train_loss_difference": 0.0002536773681640625,
+    "mean_absolute_train_loss_difference": 7.658004760742187e-05,
+    "maximum_absolute_grad_norm_difference": 0.008327245712280273,
+    "mean_absolute_grad_norm_difference": 0.0013016939163208007,
+    "final_validation_loss_source": 7.917056953203952,
+    "final_validation_loss_resumed": 7.918008236926134,
+    "final_validation_loss_difference": 0.0009512837221823389,
+    "bitwise_identical_final_model": false
+  },
+  "memory": {
+    "source_peak_reserved_gib": 36.75,
+    "resumed_peak_reserved_gib": 38.208984375,
+    "source_peak_allocated_gib": 34.98755598068237,
+    "resumed_peak_allocated_gib": 34.98755598068237
+  },
+  "acceptance": {
+    "checkpoint_integrity_verified": true,
+    "all_rank_sampler_and_rng_files_present": true,
+    "data_cursor_exact": true,
+    "numerically_equivalent_at_engineering_tolerance": true,
+    "bitwise_equivalent": false
+  },
+  "notes": [
+    "The source run saved at step 10 and continued in memory to step 20. The branch resumed from the exact same step-10 checkpoint.",
+    "The fast GPU kernels and BF16 collective path are not configured for bitwise deterministic replay across process restarts; acceptance is exact cursor replay plus bounded numerical drift."
+  ]
+}

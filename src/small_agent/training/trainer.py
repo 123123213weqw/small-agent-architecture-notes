@@ -27,14 +27,16 @@ from small_agent.data import IndexedTokenDataset, StatefulDistributedSampler
 from small_agent.evaluation import evaluate_causal_lm
 from small_agent.models import build_model, load_model_spec
 from small_agent.training.checkpoint import (
+    load_distributed_full_checkpoint,
     load_full_checkpoint,
     resolve_checkpoint,
+    save_distributed_full_checkpoint,
     save_full_checkpoint,
 )
 from small_agent.training.scheduler import TokenLRScheduler, WarmupCosineConfig
 
 
-VERSION = "small_agent_trainer_m4_v1"
+VERSION = "small_agent_trainer_m7_v1"
 
 
 def distributed_context() -> tuple[bool, int, int, int]:
@@ -176,8 +178,6 @@ def main() -> None:
     data_dir = resolve_path(repository_root, run_config["data_dir"])
     output_root = resolve_path(repository_root, run_config["output_root"])
     checkpoint_interval = int(run_config.get("checkpoint", {}).get("interval_steps", 0))
-    if distributed and (args.resume or args.save_final_checkpoint or checkpoint_interval):
-        parser.error("M4 DDP validates training/throughput only; distributed checkpointing is next")
     run_dir = output_root / args.run_id
     if is_primary:
         if args.resume:
@@ -225,11 +225,12 @@ def main() -> None:
             drop_last=True,
             samples_per_rank_multiple=micro_batch_size * accumulation_steps,
         )
+        train_loader_generator = torch.Generator().manual_seed(seed + 10_000 + rank)
         train_batches = infinite_train_batches(
             train_dataset,
             train_sampler,
             micro_batch_size,
-            torch.Generator().manual_seed(seed + 10_000 + rank),
+            train_loader_generator,
         )
         validation_subset = Subset(
             validation_dataset, range(rank, len(validation_dataset), world_size)
@@ -300,6 +301,15 @@ def main() -> None:
             "gradient_accumulation_steps": accumulation_steps,
             "gradient_checkpointing": bool(run_config.get("gradient_checkpointing", False)),
         }
+        if distributed:
+            compatibility.update(
+                {
+                    "distributed": True,
+                    "world_size": world_size,
+                    "ddp_bucket_cap_mb": float(distributed_config.get("bucket_cap_mb", 25)),
+                    "ddp_communication_hook": communication_hook,
+                }
+            )
 
         manifest = {
             "version": VERSION,
@@ -347,27 +357,42 @@ def main() -> None:
                 if existing_manifest[field]["sha256"] != manifest[field]["sha256"]:
                     raise ValueError(f"run manifest changed across resume: {field}")
             checkpoint_path = resolve_checkpoint(run_dir / "checkpoints")
-            checkpoint_manifest = load_full_checkpoint(
-                checkpoint_path,
-                model=model,
-                optimizer=optimizer,
-                scheduler=scheduler,
-                sampler=train_sampler,
-                compatibility=compatibility,
-                device=device,
-            )
+            if distributed:
+                checkpoint_manifest = load_distributed_full_checkpoint(
+                    checkpoint_path,
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    sampler=train_sampler,
+                    loader_generator=train_loader_generator,
+                    compatibility=compatibility,
+                    device=device,
+                    rank=rank,
+                    world_size=world_size,
+                )
+            else:
+                checkpoint_manifest = load_full_checkpoint(
+                    checkpoint_path,
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    sampler=train_sampler,
+                    compatibility=compatibility,
+                    device=device,
+                )
             start_step = int(checkpoint_manifest["step"])
             if max_steps <= start_step:
                 raise ValueError("max_steps must be greater than the resumed step")
-            append_jsonl(
-                metrics_path,
-                {
-                    "event": "resume",
-                    "step": start_step,
-                    "tokens_seen": scheduler.tokens_seen,
-                    "checkpoint": checkpoint_path.name,
-                },
-            )
+            if is_primary:
+                append_jsonl(
+                    metrics_path,
+                    {
+                        "event": "resume",
+                        "step": start_step,
+                        "tokens_seen": scheduler.tokens_seen,
+                        "checkpoint": checkpoint_path.name,
+                    },
+                )
         else:
             if is_primary:
                 atomic_json(run_dir / "run_manifest.json", manifest)
@@ -515,26 +540,47 @@ def main() -> None:
                 window_elapsed = 0.0
 
             if checkpoint_interval and step % checkpoint_interval == 0:
-                checkpoint_path, checkpoint_manifest = save_full_checkpoint(
-                    run_dir / "checkpoints",
-                    step=step,
-                    model=model,
-                    optimizer=optimizer,
-                    scheduler=scheduler,
-                    sampler=train_sampler,
-                    compatibility=compatibility,
-                    keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
-                )
-                append_jsonl(
-                    metrics_path,
-                    {
-                        "event": "checkpoint",
-                        "step": step,
-                        "tokens_seen": scheduler.tokens_seen,
-                        "directory": checkpoint_path.name,
-                        "elapsed_seconds": checkpoint_manifest["elapsed_seconds"],
-                    },
-                )
+                if window_steps:
+                    torch.cuda.synchronize(device)
+                    window_elapsed += time.perf_counter() - window_started
+                if distributed:
+                    checkpoint_path, checkpoint_manifest = save_distributed_full_checkpoint(
+                        run_dir / "checkpoints",
+                        step=step,
+                        model=model,
+                        optimizer=optimizer,
+                        scheduler=scheduler,
+                        sampler=train_sampler,
+                        loader_generator=train_loader_generator,
+                        compatibility=compatibility,
+                        rank=rank,
+                        world_size=world_size,
+                        keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
+                    )
+                else:
+                    checkpoint_path, checkpoint_manifest = save_full_checkpoint(
+                        run_dir / "checkpoints",
+                        step=step,
+                        model=model,
+                        optimizer=optimizer,
+                        scheduler=scheduler,
+                        sampler=train_sampler,
+                        compatibility=compatibility,
+                        keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
+                    )
+                if is_primary:
+                    append_jsonl(
+                        metrics_path,
+                        {
+                            "event": "checkpoint",
+                            "step": step,
+                            "tokens_seen": scheduler.tokens_seen,
+                            "directory": checkpoint_path.name,
+                            "elapsed_seconds": checkpoint_manifest["elapsed_seconds"],
+                        },
+                    )
+                torch.cuda.synchronize(device)
+                window_started = time.perf_counter()
 
             if step % validation_interval == 0:
                 if window_steps:
@@ -560,26 +606,42 @@ def main() -> None:
             checkpoint_interval and max_steps % checkpoint_interval == 0
         )
         if args.save_final_checkpoint and not final_already_checkpointed:
-            checkpoint_path, checkpoint_manifest = save_full_checkpoint(
-                run_dir / "checkpoints",
-                step=max_steps,
-                model=model,
-                optimizer=optimizer,
-                scheduler=scheduler,
-                sampler=train_sampler,
-                compatibility=compatibility,
-                keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
-            )
-            append_jsonl(
-                metrics_path,
-                {
-                    "event": "checkpoint",
-                    "step": max_steps,
-                    "tokens_seen": scheduler.tokens_seen,
-                    "directory": checkpoint_path.name,
-                    "elapsed_seconds": checkpoint_manifest["elapsed_seconds"],
-                },
-            )
+            if distributed:
+                checkpoint_path, checkpoint_manifest = save_distributed_full_checkpoint(
+                    run_dir / "checkpoints",
+                    step=max_steps,
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    sampler=train_sampler,
+                    loader_generator=train_loader_generator,
+                    compatibility=compatibility,
+                    rank=rank,
+                    world_size=world_size,
+                    keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
+                )
+            else:
+                checkpoint_path, checkpoint_manifest = save_full_checkpoint(
+                    run_dir / "checkpoints",
+                    step=max_steps,
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    sampler=train_sampler,
+                    compatibility=compatibility,
+                    keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
+                )
+            if is_primary:
+                append_jsonl(
+                    metrics_path,
+                    {
+                        "event": "checkpoint",
+                        "step": max_steps,
+                        "tokens_seen": scheduler.tokens_seen,
+                        "directory": checkpoint_path.name,
+                        "elapsed_seconds": checkpoint_manifest["elapsed_seconds"],
+                    },
+                )
 
         validation = evaluate_causal_lm(model, validation_loader, device)
         row = {

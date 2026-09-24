@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 
 import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,8 +16,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from small_agent.data import StatefulDistributedSampler  # noqa: E402
 from small_agent.training.checkpoint import (  # noqa: E402
+    load_distributed_full_checkpoint,
     load_full_checkpoint,
     resolve_checkpoint,
+    save_distributed_full_checkpoint,
     save_full_checkpoint,
 )
 from small_agent.training.scheduler import (  # noqa: E402
@@ -23,7 +28,119 @@ from small_agent.training.scheduler import (  # noqa: E402
 )
 
 
+def _distributed_roundtrip_worker(
+    rank: int, world_size: int, rendezvous: str, checkpoint_root: str, result_root: str
+) -> None:
+    dist.init_process_group(
+        "gloo", init_method=f"file://{rendezvous}", rank=rank, world_size=world_size
+    )
+    try:
+        device = torch.device("cpu")
+        torch.manual_seed(123)
+        model = torch.nn.Linear(3, 2).to(device)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+        scheduler = TokenLRScheduler(
+            optimizer, WarmupCosineConfig(1e-3, 1e-4, 2, 20)
+        )
+        sampler = StatefulDistributedSampler(
+            16, num_replicas=world_size, rank=rank, seed=17
+        )
+        sampler_iterator = iter(sampler)
+        next(sampler_iterator)
+        next(sampler_iterator)
+        loader_generator = torch.Generator().manual_seed(2000 + rank)
+        torch.rand((), generator=loader_generator)
+
+        loss = model(torch.ones((2, 3), device=device)).square().mean()
+        loss.backward()
+        optimizer.step()
+        scheduler.step(8)
+        torch.manual_seed(1000 + rank)
+        torch.rand(())
+        compatibility = {"test": "distributed-roundtrip", "world_size": world_size}
+        checkpoint, _ = save_distributed_full_checkpoint(
+            Path(checkpoint_root),
+            step=1,
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            sampler=sampler,
+            loader_generator=loader_generator,
+            compatibility=compatibility,
+            rank=rank,
+            world_size=world_size,
+            keep=1,
+        )
+        expected_torch_random = float(torch.rand(()))
+        expected_loader_random = float(torch.rand((), generator=loader_generator))
+
+        with torch.no_grad():
+            for parameter in model.parameters():
+                parameter.zero_()
+        sampler.set_epoch(3)
+        scheduler.step(5)
+        torch.manual_seed(9999)
+        loader_generator.manual_seed(9999)
+
+        manifest = load_distributed_full_checkpoint(
+            checkpoint,
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            sampler=sampler,
+            loader_generator=loader_generator,
+            compatibility=compatibility,
+            device=device,
+            rank=rank,
+            world_size=world_size,
+        )
+        result = {
+            "step": manifest["step"],
+            "tokens_seen": scheduler.tokens_seen,
+            "sampler_cursor": sampler.cursor,
+            "torch_random": float(torch.rand(())),
+            "expected_torch_random": expected_torch_random,
+            "loader_random": float(torch.rand((), generator=loader_generator)),
+            "expected_loader_random": expected_loader_random,
+        }
+        (Path(result_root) / f"rank_{rank}.json").write_text(
+            json.dumps(result), encoding="utf-8"
+        )
+    finally:
+        dist.destroy_process_group()
+
+
 class CheckpointTests(unittest.TestCase):
+    def test_distributed_roundtrip_restores_rank_local_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            rendezvous = root / "rendezvous"
+            checkpoints = root / "checkpoints"
+            results = root / "results"
+            results.mkdir()
+            mp.spawn(
+                _distributed_roundtrip_worker,
+                args=(2, str(rendezvous), str(checkpoints), str(results)),
+                nprocs=2,
+                join=True,
+            )
+            checkpoint = resolve_checkpoint(checkpoints)
+            self.assertTrue((checkpoint / "runtime_rank_00000.pt").is_file())
+            self.assertTrue((checkpoint / "runtime_rank_00001.pt").is_file())
+            self.assertTrue((checkpoint / "sampler_rank_00000.json").is_file())
+            self.assertTrue((checkpoint / "sampler_rank_00001.json").is_file())
+            for rank in range(2):
+                result = json.loads((results / f"rank_{rank}.json").read_text())
+                self.assertEqual(result["step"], 1)
+                self.assertEqual(result["tokens_seen"], 8)
+                self.assertEqual(result["sampler_cursor"], 2)
+                self.assertEqual(
+                    result["torch_random"], result["expected_torch_random"]
+                )
+                self.assertEqual(
+                    result["loader_random"], result["expected_loader_random"]
+                )
+
     def test_roundtrip_restores_all_training_state(self) -> None:
         device = torch.device("cpu")
         model = torch.nn.Linear(4, 3).to(device)

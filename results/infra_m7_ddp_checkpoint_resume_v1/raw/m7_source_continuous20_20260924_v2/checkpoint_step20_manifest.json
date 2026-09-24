@@ -1,0 +1,101 @@
+{
+  "version": "small_agent_distributed_full_checkpoint_v1",
+  "stage": "distributed_full_training_checkpoint",
+  "created_at": "2026-09-24T08:52:08.080318+00:00",
+  "step": 20,
+  "tokens_seen": 2620800,
+  "world_size": 8,
+  "elapsed_seconds": 23.344,
+  "compatibility": {
+    "run_config_sha256": "3e88dd162e6cf2cde237788b3e7b29c4ef3cd7a22b7950000f072defd9e4c3d9",
+    "model_spec_sha256": "51e728d13e95cf111825416b344092171d5e0cc266ab66c55b501bfd76753b1e",
+    "data_manifest_sha256": "4b62a5cd59e4615de411854b4c997ad566bcc2ea66748e3ea2055cec6f1584d0",
+    "seed": 20260924,
+    "context_length": 4096,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 4,
+    "gradient_checkpointing": false,
+    "distributed": true,
+    "world_size": 8,
+    "ddp_bucket_cap_mb": 25.0,
+    "ddp_communication_hook": "bf16"
+  },
+  "artifacts": {
+    "model.safetensors": {
+      "bytes": 4020893344,
+      "sha256": "583dea276a24a71213994e7ea58ece96299e216d06abc0ff822293fdc6604c25"
+    },
+    "optimizer.pt": {
+      "bytes": 8042029404,
+      "sha256": "911674e8276bf17935a91a04abbebda9530d36a003242c66831e88711d437078"
+    },
+    "scheduler.json": {
+      "bytes": 195,
+      "sha256": "e985394af5c7d6fa910a4012f0f9b83bb36e70063241aa370c778aea3fbe7374"
+    },
+    "runtime_rank_00000.pt": {
+      "bytes": 11937,
+      "sha256": "9c1e87cd35a6f7f1e017e3593fb7311392222f7e3ee0125a42c4c99fd0f631c0"
+    },
+    "runtime_rank_00001.pt": {
+      "bytes": 11937,
+      "sha256": "e39a69f2e56d134c53ec46888b5bb89c8536968de39685622c966cf9af561778"
+    },
+    "runtime_rank_00002.pt": {
+      "bytes": 11937,
+      "sha256": "2d115aab849be57e9822edc4c003c1c3f8dcf4bcde860995f095248de144040e"
+    },
+    "runtime_rank_00003.pt": {
+      "bytes": 11937,
+      "sha256": "5afebe7115209b55099f122728b8131dbbc1df3ee774677822b37e0b4ffc8797"
+    },
+    "runtime_rank_00004.pt": {
+      "bytes": 11937,
+      "sha256": "93e1aa572b3257bd5766465184b1d44aaebb0eb581266c2160597a6276253237"
+    },
+    "runtime_rank_00005.pt": {
+      "bytes": 11937,
+      "sha256": "ab1f5bde0ae7300b65ee09f06481baeb6561d2e8a75ee767bcc16623fbca89db"
+    },
+    "runtime_rank_00006.pt": {
+      "bytes": 11937,
+      "sha256": "d87d74fd7a716b4b900d367e698d0ef99e78a9a4703be5ec5a3b0597eb660c6f"
+    },
+    "runtime_rank_00007.pt": {
+      "bytes": 11937,
+      "sha256": "91e826b78decaf1573b62ed38abc7b0b2a25561528f865e17b89502aceb5a5b7"
+    },
+    "sampler_rank_00000.json": {
+      "bytes": 221,
+      "sha256": "1d8856f739a1bd4d143e045ccf369a8e088de0edf11e9b06550c052c54e14d85"
+    },
+    "sampler_rank_00001.json": {
+      "bytes": 221,
+      "sha256": "0fcb7e3582e38b24289f6591970aedbf85b17b48a2640d59dc4422320c2c43fb"
+    },
+    "sampler_rank_00002.json": {
+      "bytes": 221,
+      "sha256": "2ea4d4bbb1892dafebfb7ea63d1117e68c201554657e6e36da08aaffc49dc156"
+    },
+    "sampler_rank_00003.json": {
+      "bytes": 221,
+      "sha256": "0e91ef6e9215adc1d5762aa1be713bf398b32240759b5d8cc94f58f442986d83"
+    },
+    "sampler_rank_00004.json": {
+      "bytes": 221,
+      "sha256": "71e333df7106ea0b59ecca5bf1d81b410cbe97c8067658960e979777a279a9b9"
+    },
+    "sampler_rank_00005.json": {
+      "bytes": 221,
+      "sha256": "6e51063c8541595069ce758ae58e1ec28f6725d4c0691ccda7c6c7725410c19e"
+    },
+    "sampler_rank_00006.json": {
+      "bytes": 221,
+      "sha256": "1ab6e155673657ab50bd88f2a5bc46e2fa6f25d16c0207d856d882dbe7366bcd"
+    },
+    "sampler_rank_00007.json": {
+      "bytes": 221,
+      "sha256": "bcdd02b2e402439c5b6b482774fd76be653ac4430ca0da21cb4f4418c1781dc6"
+    }
+  }
+}
