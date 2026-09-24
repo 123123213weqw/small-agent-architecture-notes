@@ -1,0 +1,45 @@
+{
+  "version": "infra_m4b_bf16_comm_v1",
+  "date": "2026-09-24",
+  "stage": "engineering_only",
+  "comparison": {
+    "world_size": 8,
+    "context_length": 4096,
+    "micro_batch_size_per_gpu": 1,
+    "gradient_accumulation_steps": 4,
+    "bucket_cap_mb": 25,
+    "stable_steps": [
+      4,
+      12
+    ]
+  },
+  "fp32_allreduce_baseline": {
+    "run_id": "m4_d8_acc4_20260924_v1",
+    "median_tokens_per_second": 31939.413499479506,
+    "p10": 30616.673717814796,
+    "p90": 32077.722061635784,
+    "scaling_efficiency_vs_single_gpu": 0.4750273247765411,
+    "final_validation_loss": 8.21695009004597
+  },
+  "bf16_allreduce": {
+    "run_id": "m4b_d8_bf16hook_20260924_v1",
+    "median_tokens_per_second": 45761.999633226216,
+    "p10": 45186.05850222253,
+    "p90": 45837.93551456581,
+    "minimum": 43229.631922718014,
+    "maximum": 45872.832031957376,
+    "speedup_vs_fp32_allreduce": 1.4327752021486546,
+    "speedup_vs_single_gpu": 5.444858970262747,
+    "scaling_efficiency_vs_single_gpu": 0.6806073712828433,
+    "peak_allocated_gib": 22.99168300628662,
+    "peak_reserved_gib": 24.06640625,
+    "final_validation_loss": 8.216491633361217
+  },
+  "short_horizon_numerical_comparison": {
+    "maximum_absolute_train_loss_difference": 0.0016651153564453125,
+    "mean_absolute_train_loss_difference": 0.0004986127217610677,
+    "maximum_absolute_grad_norm_difference": 0.006619453430175781,
+    "final_validation_loss_difference_bf16_minus_fp32": -0.0004584566847523064
+  },
+  "conclusion": "BF16 gradient communication increased median 8-GPU throughput by 43.3% (31.9k to 45.8k token/s) and raised scaling efficiency from 47.5% to 68.1%. Twelve steps only establish short-horizon numerical proximity, not long-run convergence equivalence."
+}

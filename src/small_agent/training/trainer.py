@@ -18,6 +18,7 @@ from typing import Any, Iterator
 
 import torch
 import torch.distributed as dist
+from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as ddp_default_hooks
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
@@ -251,6 +252,10 @@ def main() -> None:
         model.train()
         parameter_count = sum(parameter.numel() for parameter in model.parameters())
         training_model: torch.nn.Module = model
+        distributed_config = run_config.get("distributed", {})
+        communication_hook = distributed_config.get("communication_hook", "none")
+        if communication_hook not in ("none", "bf16"):
+            raise ValueError(f"unsupported DDP communication hook: {communication_hook}")
         if distributed:
             training_model = DDP(
                 model,
@@ -258,7 +263,12 @@ def main() -> None:
                 output_device=local_rank,
                 broadcast_buffers=False,
                 gradient_as_bucket_view=True,
+                bucket_cap_mb=float(distributed_config.get("bucket_cap_mb", 25)),
             )
+            if communication_hook == "bf16":
+                training_model.register_comm_hook(
+                    dist.group.WORLD, ddp_default_hooks.bf16_compress_hook
+                )
             # Keep initialization identical, then decorrelate stochastic layers.
             torch.manual_seed(seed + rank)
             torch.cuda.manual_seed_all(seed + rank)
@@ -305,6 +315,8 @@ def main() -> None:
             "parameter_count": parameter_count,
             "distributed": distributed,
             "world_size": world_size,
+            "ddp_bucket_cap_mb": float(distributed_config.get("bucket_cap_mb", 25)),
+            "ddp_communication_hook": communication_hook,
             "global_sequences_per_step": micro_batch_size * accumulation_steps * world_size,
             "max_steps": max_steps,
             "run_config": {"path": str(config_path), "sha256": sha256_file(config_path)},
