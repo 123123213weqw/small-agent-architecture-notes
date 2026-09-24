@@ -157,6 +157,13 @@ class TrainctlTest(unittest.TestCase):
                 "optimizer": {}, "scheduler": {}, "validation": {},
             }))
             trainctl.validate_configuration(root, run_path)
+            run = json.loads(run_path.read_text())
+            run["data_pipeline"] = {"num_workers": 2, "prefetch_factor": 0}
+            run_path.write_text(json.dumps(run))
+            with self.assertRaisesRegex(trainctl.PreflightError, "data_pipeline"):
+                trainctl.validate_configuration(root, run_path)
+            run.pop("data_pipeline")
+            run_path.write_text(json.dumps(run))
             with (data / shards[0]["bin"]).open("r+b") as handle:
                 handle.seek(0)
                 handle.write(b"XX")

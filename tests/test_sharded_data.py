@@ -188,6 +188,79 @@ class ShardedDataTests(unittest.TestCase):
             self.assertEqual(actual, expected)
             self.assertEqual(first + actual[:2], [schedule.sample_ref_at(i) for i in range(4)])
 
+    def test_worker_prefetch_preserves_order_and_commit_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            dataset = ShardedTokenDataset(make_shards(Path(temporary) / "shards"), "train", 5)
+            schedule = DeterministicMixtureSchedule(dataset, seed=43, block_size=4)
+            baseline = MixtureDistributedSampler(
+                schedule, num_replicas=1, rank=0, micro_batch_size=1,
+                gradient_accumulation_steps=2,
+            )
+            baseline_loader = iter(DataLoader(dataset, batch_size=1, sampler=baseline, num_workers=0))
+            expected = [int(next(baseline_loader)["sample_ref"][0]) for _ in range(18)]
+
+            prefetched = MixtureDistributedSampler(
+                schedule, num_replicas=1, rank=0, micro_batch_size=1,
+                gradient_accumulation_steps=2,
+            )
+            loader = DataLoader(
+                dataset, batch_size=1, sampler=prefetched, num_workers=2,
+                prefetch_factor=2, pin_memory=True,
+            )
+            batches = iter(loader)
+            consumed = [int(next(batches)["sample_ref"][0]) for _ in range(2)]
+            self.assertEqual(consumed, expected[:2])
+            prefetched.commit_step()
+            state = prefetched.state_dict()
+            self.assertEqual(state["committed_global_position"], 2)
+            # Workers are permitted to have dispatched later positions already.
+            self.assertGreaterEqual(prefetched.produced_local_samples, 2)
+            rest = [int(next(batches)["sample_ref"][0]) for _ in range(16)]
+            self.assertEqual(consumed + rest, expected)
+            restored = MixtureDistributedSampler(
+                schedule, num_replicas=1, rank=0, micro_batch_size=1,
+                gradient_accumulation_steps=2,
+            )
+            restored.load_state_dict(state)
+            resumed = iter(DataLoader(dataset, batch_size=1, sampler=restored, num_workers=0))
+            self.assertEqual(
+                [int(next(resumed)["sample_ref"][0]) for _ in range(16)],
+                expected[2:],
+            )
+            del batches, loader
+
+    def test_two_rank_worker_prefetch_resume_trace(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            dataset = ShardedTokenDataset(make_shards(Path(temporary) / "shards"), "train", 5)
+            schedule = DeterministicMixtureSchedule(dataset, seed=47, block_size=4)
+            for rank in (0, 1):
+                sampler = MixtureDistributedSampler(
+                    schedule, num_replicas=2, rank=rank,
+                    micro_batch_size=1, gradient_accumulation_steps=2,
+                )
+                loader = DataLoader(
+                    dataset, batch_size=1, sampler=sampler, num_workers=2,
+                    prefetch_factor=2, pin_memory=True,
+                )
+                iterator = iter(loader)
+                first_step = [int(next(iterator)["sample_ref"][0]) for _ in range(2)]
+                sampler.commit_step()
+                state = sampler.state_dict()
+                expected = [int(next(iterator)["sample_ref"][0]) for _ in range(8)]
+                restored = MixtureDistributedSampler(
+                    schedule, num_replicas=2, rank=rank,
+                    micro_batch_size=1, gradient_accumulation_steps=2,
+                )
+                restored.load_state_dict(state)
+                resumed = iter(DataLoader(dataset, batch_size=1, sampler=restored, num_workers=0))
+                actual = [int(next(resumed)["sample_ref"][0]) for _ in range(8)]
+                self.assertEqual(actual, expected)
+                self.assertEqual(first_step + actual, [
+                    schedule.sample_ref_at(position)
+                    for position in range(rank, 20, 2)
+                ])
+                del iterator, loader
+
 
 if __name__ == "__main__":
     unittest.main()

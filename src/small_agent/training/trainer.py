@@ -170,14 +170,23 @@ def sharded_train_batches(
     sampler: MixtureDistributedSampler,
     batch_size: int,
     loader_generator: torch.Generator,
+    pipeline_config: dict[str, Any],
 ) -> Iterator[dict[str, torch.Tensor]]:
     """An infinite sampler; constructing the loader lazily permits checkpoint restore first."""
+    workers = int(pipeline_config.get("num_workers", 0))
+    if workers < 0:
+        raise ValueError("data_pipeline.num_workers must be nonnegative")
+    prefetch_factor = int(pipeline_config.get("prefetch_factor", 2))
+    if workers and prefetch_factor < 1:
+        raise ValueError("data_pipeline.prefetch_factor must be positive")
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
         sampler=sampler,
-        num_workers=0,
-        pin_memory=True,
+        num_workers=workers,
+        prefetch_factor=prefetch_factor if workers else None,
+        persistent_workers=bool(pipeline_config.get("persistent_workers", True)) if workers else False,
+        pin_memory=bool(pipeline_config.get("pin_memory", True)),
         generator=loader_generator,
     )
     yield from loader
@@ -224,6 +233,9 @@ def main() -> None:
     context_length = int(run_config["context_length"])
     micro_batch_size = int(run_config["micro_batch_size"])
     accumulation_steps = int(run_config["gradient_accumulation_steps"])
+    data_pipeline_config = run_config.get("data_pipeline", {})
+    measure_data_pipeline = bool(data_pipeline_config.get("measure", False))
+    trace_sample_refs = bool(data_pipeline_config.get("trace_sample_refs", False))
     seed = int(run_config["seed"])
     if micro_batch_size < 1 or accumulation_steps < 1:
         raise ValueError("batch size and accumulation must be positive")
@@ -271,7 +283,11 @@ def main() -> None:
         train_loader_generator = torch.Generator().manual_seed(seed + 10_000 + rank)
         if reader == "sharded_v1":
             train_batches = sharded_train_batches(
-                train_dataset, train_sampler, micro_batch_size, train_loader_generator
+                train_dataset,
+                train_sampler,
+                micro_batch_size,
+                train_loader_generator,
+                data_pipeline_config,
             )
         else:
             train_batches = infinite_train_batches(
@@ -406,6 +422,7 @@ def main() -> None:
                     "samples_per_rank_multiple": train_sampler.samples_per_rank_multiple,
                 }
             ),
+            "data_pipeline": data_pipeline_config if reader == "sharded_v1" else {},
             "validation_coverage": validation_dataset.coverage_report(),
         }
         start_step = 0
@@ -503,6 +520,9 @@ def main() -> None:
         window_loss = torch.zeros((), device=device)
         window_tokens = 0
         window_steps = 0
+        window_data_wait_seconds = 0.0
+        window_h2d_events: list[tuple[torch.cuda.Event, torch.cuda.Event]] = []
+        window_sample_refs: list[int] = []
         torch.cuda.reset_peak_memory_stats(device)
         torch.cuda.synchronize(device)
         window_started = time.perf_counter()
@@ -513,13 +533,25 @@ def main() -> None:
             step_loss = torch.zeros((), device=device)
             step_tokens = 0
             for microstep in range(accumulation_steps):
+                data_wait_started = time.perf_counter()
                 batch = next(train_batches)
+                if measure_data_pipeline:
+                    window_data_wait_seconds += time.perf_counter() - data_wait_started
+                if trace_sample_refs and reader == "sharded_v1":
+                    window_sample_refs.extend(int(value) for value in batch["sample_ref"].tolist())
                 predicted_tokens = int(
                     torch.count_nonzero(batch["labels"][:, 1:] != -100)
                 )
+                if measure_data_pipeline:
+                    h2d_started = torch.cuda.Event(enable_timing=True)
+                    h2d_finished = torch.cuda.Event(enable_timing=True)
+                    h2d_started.record()
                 input_ids = batch["input_ids"].to(device, non_blocking=True)
                 labels = batch["labels"].to(device, non_blocking=True)
                 attention_mask = batch["attention_mask"].to(device, non_blocking=True)
+                if measure_data_pipeline:
+                    h2d_finished.record()
+                    window_h2d_events.append((h2d_started, h2d_finished))
                 should_sync = not distributed or microstep == accumulation_steps - 1
                 synchronization = (
                     nullcontext() if should_sync else training_model.no_sync()
@@ -582,6 +614,22 @@ def main() -> None:
                     "peak_allocated_gib": maximum_allocated,
                     "peak_reserved_gib": maximum_reserved,
                 }
+                if measure_data_pipeline:
+                    max_wait = reduce_max_float(window_data_wait_seconds, device)
+                    local_h2d_ms = sum(
+                        begin.elapsed_time(end) for begin, end in window_h2d_events
+                    )
+                    max_h2d_ms = reduce_max_float(local_h2d_ms, device)
+                    row.update(
+                        {
+                            "data_wait_ms": max_wait * 1000,
+                            "h2d_copy_ms": max_h2d_ms,
+                            "data_wait_fraction": max_wait / max(elapsed, 1e-9),
+                            "h2d_copy_fraction": (max_h2d_ms / 1000) / max(elapsed, 1e-9),
+                        }
+                    )
+                if trace_sample_refs and reader == "sharded_v1":
+                    row["sample_refs_rank0"] = window_sample_refs.copy() if is_primary else []
                 if is_primary:
                     append_jsonl(metrics_path, row)
                     print(json.dumps(row), flush=True)
@@ -590,6 +638,10 @@ def main() -> None:
                     writer.add_scalar("train/tokens_seen", scheduler.tokens_seen, step)
                     writer.add_scalar("system/gpu_allocated_gib", row["peak_allocated_gib"], step)
                     writer.add_scalar("system/gpu_reserved_gib", row["peak_reserved_gib"], step)
+                    if measure_data_pipeline:
+                        writer.add_scalar("data/wait_ms", row["data_wait_ms"], step)
+                        writer.add_scalar("data/h2d_copy_ms", row["h2d_copy_ms"], step)
+                        writer.add_scalar("data/wait_fraction", row["data_wait_fraction"], step)
                     writer.flush()
                     atomic_json(
                         status_path,
@@ -598,6 +650,9 @@ def main() -> None:
                 window_loss.zero_()
                 window_tokens = 0
                 window_steps = 0
+                window_data_wait_seconds = 0.0
+                window_h2d_events.clear()
+                window_sample_refs.clear()
                 window_started = time.perf_counter()
                 window_elapsed = 0.0
 

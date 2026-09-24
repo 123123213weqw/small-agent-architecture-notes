@@ -82,3 +82,5 @@ p=p_0+j(WB)+rB+i,
 2026-09-24 L40 验收：使用原百万 token 冒烟集重新打包为 14 个 shard（训练 12、验证 1、测试 1），8 卡训练第 1 步保存完整 checkpoint，随后从该 checkpoint 恢复并完成第 2 步。最终处理 262,080 token，8 个 rank 的 `committed_global_position` 均为 64；保存的下一个 shard/sample/token offset 与确定性日程逐 rank 一致。单元测试 16 项通过。为保持服务器整洁，验收后删除约 12 GB 的临时 checkpoint，仅保留小型状态、指标和 `sharded_2a_validation.json`；该 canary 因此**不再可继续恢复**。这个 GPU canary 只有 `general` 一个领域；多领域混合比例与顺序目前由单元测试验证，正式多领域数据仍需另跑端到端验收。
 
 当前 2A 不承诺：多 worker 加速、动态修改混合比例、改变 world size 后继续精确恢复。任一数据或调度配置变化都应新建 run，不能复用旧 checkpoint。
+
+后续可选 worker 预取与实测决策见 [2B 文档](infra-sharded-reader-2b.zh.md)。

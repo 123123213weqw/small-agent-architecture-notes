@@ -251,6 +251,10 @@ def validate_configuration(
     if int(data_manifest.get("eos_token_id", -1)) != int(model_config["eos_token_id"]):
         raise PreflightError("data/model eos_token_id mismatch")
     if reader == "sharded_v1":
+        pipeline = run_config.get("data_pipeline", {})
+        workers = int(pipeline.get("num_workers", 0))
+        if workers < 0 or (workers and int(pipeline.get("prefetch_factor", 2)) < 1):
+            raise PreflightError("invalid sharded data_pipeline workers/prefetch_factor")
         if data_manifest.get("version") != "sharded_token_stream_v1":
             raise PreflightError("unsupported sharded manifest version")
         if int(data_manifest.get("sequence_length", -1)) != int(run_config["context_length"]):
