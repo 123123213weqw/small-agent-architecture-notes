@@ -19,7 +19,7 @@ import torch
 from torch.utils.data import Dataset
 
 
-PACKED_STAGE = "internal_smoke_token_stream"
+PACKED_STAGES = {"internal_smoke_token_stream", "approved_real_token_stream"}
 
 
 def sha256_file(path: Path) -> str:
@@ -33,7 +33,7 @@ def sha256_file(path: Path) -> str:
 def load_manifest(data_dir: Path) -> dict[str, Any]:
     manifest_path = data_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("stage") != PACKED_STAGE:
+    if manifest.get("stage") not in PACKED_STAGES:
         raise ValueError(f"unexpected packed corpus stage: {manifest.get('stage')!r}")
     if manifest.get("dtype") != "uint16":
         raise ValueError(f"unsupported packed dtype: {manifest.get('dtype')!r}")

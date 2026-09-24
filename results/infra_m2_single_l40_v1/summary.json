@@ -1,0 +1,36 @@
+{
+  "run_id": "m2_train100_20260924_v1",
+  "purpose": "internal_pipeline_smoke",
+  "distributable": false,
+  "source_revision": "d9713fb+M2-worktree",
+  "host": "node5",
+  "gpu": "NVIDIA L40",
+  "torch": "2.5.1+cu121",
+  "parameters": 1005213696,
+  "context_length": 4096,
+  "micro_batch_size": 1,
+  "gradient_accumulation_steps": 4,
+  "steps": 100,
+  "tokens_seen": 1638000,
+  "train_loss": {
+    "step_1": 10.710841178894043,
+    "step_50": 7.989168167114258,
+    "step_100": 6.993322372436523
+  },
+  "validation_loss": {
+    "step_0": 10.722793393505889,
+    "step_50": 7.162646759184765,
+    "step_100": 6.725711787356713
+  },
+  "steady_tokens_per_second_median_steps_2_100": 8138.196258326646,
+  "steady_tokens_per_second_min_steps_2_100": 7515.387353732997,
+  "steady_tokens_per_second_max_steps_2_100": 8507.91217712572,
+  "peak_allocated_gib": 19.247130393981934,
+  "peak_reserved_gib": 20.345703125,
+  "final_learning_rate": 0.00019823389759540889,
+  "final_gradient_norm_before_clipping": 5.136351585388184,
+  "data_manifest_sha256": "4b62a5cd59e4615de411854b4c997ad566bcc2ea66748e3ea2055cec6f1584d0",
+  "model_spec_sha256": "51e728d13e95cf111825416b344092171d5e0cc266ab66c55b501bfd76753b1e",
+  "run_config_sha256": "137d0046855bd57760c106c32351c5fc67b54e1321cb665e6c2ece9b2f44a567",
+  "status": "completed"
+}
