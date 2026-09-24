@@ -12,13 +12,18 @@ from torch.utils.data import Sampler
 class StatefulDistributedSampler(Sampler[int]):
     """Shard one deterministic epoch order across DDP ranks.
 
+    ``samples_per_rank_multiple`` trims the epoch so every rank consumes a
+    whole number of optimizer-step sample groups.  This prevents DataLoader's
+    ``drop_last`` from silently discarding a different tail when microbatch
+    size changes.
+
     The cursor is advanced before yielding an index, so ``state_dict`` points
     to the next index to consume.  Exact cursor recovery requires a DataLoader
     without worker prefetch (``num_workers=0``); worker-safe commit tracking is
     deliberately deferred until the basic trainer is validated.
     """
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(
         self,
@@ -29,6 +34,7 @@ class StatefulDistributedSampler(Sampler[int]):
         seed: int = 0,
         shuffle: bool = True,
         drop_last: bool = True,
+        samples_per_rank_multiple: int = 1,
     ) -> None:
         if dataset_size < 1:
             raise ValueError("dataset_size must be positive")
@@ -36,22 +42,29 @@ class StatefulDistributedSampler(Sampler[int]):
             raise ValueError("num_replicas must be positive")
         if not 0 <= rank < num_replicas:
             raise ValueError("rank must be in [0, num_replicas)")
+        if samples_per_rank_multiple < 1:
+            raise ValueError("samples_per_rank_multiple must be positive")
+        if not drop_last and samples_per_rank_multiple != 1:
+            raise ValueError("padding mode only supports samples_per_rank_multiple=1")
         self.dataset_size = dataset_size
         self.num_replicas = num_replicas
         self.rank = rank
         self.seed = seed
         self.shuffle = shuffle
         self.drop_last = drop_last
+        self.samples_per_rank_multiple = samples_per_rank_multiple
         self.epoch = 0
         self.cursor = 0
 
         if drop_last:
-            self.num_samples = dataset_size // num_replicas
+            global_multiple = num_replicas * samples_per_rank_multiple
+            self.total_size = dataset_size // global_multiple * global_multiple
+            self.num_samples = self.total_size // num_replicas
         else:
             self.num_samples = (dataset_size + num_replicas - 1) // num_replicas
+            self.total_size = self.num_samples * num_replicas
         if self.num_samples == 0:
             raise ValueError("dataset is too small for drop_last DDP sharding")
-        self.total_size = self.num_samples * num_replicas
 
     def _global_indices(self) -> list[int]:
         if self.shuffle:
@@ -104,6 +117,7 @@ class StatefulDistributedSampler(Sampler[int]):
             "seed": self.seed,
             "shuffle": self.shuffle,
             "drop_last": self.drop_last,
+            "samples_per_rank_multiple": self.samples_per_rank_multiple,
             "epoch": self.epoch,
             "cursor": self.cursor,
             "num_samples": self.num_samples,
@@ -118,6 +132,7 @@ class StatefulDistributedSampler(Sampler[int]):
             "seed": self.seed,
             "shuffle": self.shuffle,
             "drop_last": self.drop_last,
+            "samples_per_rank_multiple": self.samples_per_rank_multiple,
             "num_samples": self.num_samples,
         }
         for key, value in expected.items():

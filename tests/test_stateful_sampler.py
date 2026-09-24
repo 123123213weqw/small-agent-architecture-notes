@@ -60,6 +60,29 @@ class StatefulDistributedSamplerTests(unittest.TestCase):
         self.assertEqual([len(items) for items in values], [2, 2, 2])
         self.assertEqual(values, [[0, 3], [1, 4], [2, 0]])
 
+    def test_optimizer_step_multiple_trims_the_same_tail_across_ranks(self) -> None:
+        samplers = [
+            StatefulDistributedSampler(
+                271,
+                num_replicas=8,
+                rank=rank,
+                shuffle=False,
+                samples_per_rank_multiple=4,
+            )
+            for rank in range(8)
+        ]
+        values = [list(sampler) for sampler in samplers]
+        self.assertEqual([len(items) for items in values], [32] * 8)
+        self.assertTrue(all(len(items) % 4 == 0 for items in values))
+        self.assertEqual(len(set().union(*map(set, values))), 256)
+
+    def test_optimizer_step_multiple_is_checkpoint_compatible(self) -> None:
+        source = StatefulDistributedSampler(40, samples_per_rank_multiple=4)
+        next(iter(source))
+        incompatible = StatefulDistributedSampler(40, samples_per_rank_multiple=5)
+        with self.assertRaisesRegex(ValueError, "samples_per_rank_multiple"):
+            incompatible.load_state_dict(source.state_dict())
+
 
 if __name__ == "__main__":
     unittest.main()

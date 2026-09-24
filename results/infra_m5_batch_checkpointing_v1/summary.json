@@ -1,0 +1,117 @@
+{
+  "version": "infra_m5_batch_checkpointing_v1",
+  "date": "2026-09-24",
+  "stage": "engineering_only",
+  "common": {
+    "world_size": 8,
+    "context_length": 4096,
+    "global_sequences_per_step": 32,
+    "global_predicted_tokens_per_step": 131040,
+    "communication_hook": "bf16",
+    "bucket_cap_mb": 25,
+    "stable_steps": [
+      4,
+      12
+    ]
+  },
+  "sampler_correction": {
+    "version": 2,
+    "samples_per_rank_multiple": 4,
+    "samples_per_rank": 32,
+    "global_samples_per_epoch": 256,
+    "dropped_samples_per_epoch": 15,
+    "reason": "Prevent DataLoader drop_last from silently dropping different epoch tails when microbatch changes."
+  },
+  "variants": {
+    "A": {
+      "run_id": "m5_a_micro1_accum4_gc_on_20260924_v2",
+      "micro_batch_size": 1,
+      "gradient_accumulation_steps": 4,
+      "gradient_checkpointing": true,
+      "status": "completed",
+      "completed_steps": 12,
+      "throughput_tokens_per_second": {
+        "median": 45338.557470432585,
+        "p10": 44801.8633745761,
+        "p90": 45551.97974524521,
+        "minimum": 43097.84855652283,
+        "maximum": 45557.386013182746
+      },
+      "peak_allocated_gib": 22.99168300628662,
+      "peak_reserved_gib": 24.06640625,
+      "final_validation_loss": 8.246878128770996,
+      "speedup_vs_A": 1.0
+    },
+    "B": {
+      "run_id": "m5_b_micro2_accum2_gc_on_20260924_v2",
+      "micro_batch_size": 2,
+      "gradient_accumulation_steps": 2,
+      "gradient_checkpointing": true,
+      "status": "completed",
+      "completed_steps": 12,
+      "throughput_tokens_per_second": {
+        "median": 48506.598919281045,
+        "p10": 48466.853718633596,
+        "p90": 48588.24564062553,
+        "minimum": 48450.387256491296,
+        "maximum": 48690.972609069846
+      },
+      "peak_allocated_gib": 25.301876544952393,
+      "peak_reserved_gib": 26.669921875,
+      "final_validation_loss": 8.246349934154114,
+      "speedup_vs_A": 1.0698752149517436
+    },
+    "C": {
+      "run_id": "m5_c_micro1_accum4_gc_off_20260924_v2",
+      "micro_batch_size": 1,
+      "gradient_accumulation_steps": 4,
+      "gradient_checkpointing": false,
+      "status": "completed",
+      "completed_steps": 12,
+      "throughput_tokens_per_second": {
+        "median": 49882.467083010066,
+        "p10": 49804.3851928647,
+        "p90": 49943.5515029826,
+        "minimum": 49759.5317267202,
+        "maximum": 49967.62832597261
+      },
+      "peak_allocated_gib": 34.98755598068237,
+      "peak_reserved_gib": 36.75,
+      "final_validation_loss": 8.245320896079495,
+      "speedup_vs_A": 1.100221750891408
+    },
+    "D": {
+      "run_id": "m5_d_micro2_accum2_gc_off_20260924_v2",
+      "micro_batch_size": 2,
+      "gradient_accumulation_steps": 2,
+      "gradient_checkpointing": false,
+      "status": "failed",
+      "completed_steps": 1,
+      "failure": {
+        "error_type": "OutOfMemoryError",
+        "error": "CUDA out of memory. Tried to allocate 512.00 MiB. GPU 0 has a total capacity of 44.39 GiB of which 191.12 MiB is free. Including non-PyTorch memory, this process has 44.20 GiB memory in use. Of the allocated memory 42.57 GiB is allocated by PyTorch, and 281.72 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+      },
+      "last_recorded_peak_allocated_gib": 41.79734992980957,
+      "last_recorded_peak_reserved_gib": 42.560546875
+    }
+  },
+  "short_horizon_numerical_comparison_vs_A": {
+    "B": {
+      "maximum_absolute_train_loss_difference": 0.0032291412353515625,
+      "mean_absolute_train_loss_difference": 0.0009557406107584635,
+      "maximum_absolute_grad_norm_difference": 0.017984628677368164,
+      "final_validation_loss_difference": -0.0005281946168818052
+    },
+    "C": {
+      "maximum_absolute_train_loss_difference": 0.0011434555053710938,
+      "mean_absolute_train_loss_difference": 0.00031646092732747394,
+      "maximum_absolute_grad_norm_difference": 0.014591455459594727,
+      "final_validation_loss_difference": -0.0015572326915016532
+    }
+  },
+  "reference_fp32_ddp_median_tokens_per_second": 31939.413499479506,
+  "best_configuration": "C",
+  "best_median_tokens_per_second": 49882.467083010066,
+  "combined_speedup_vs_original_fp32_ddp": 1.561784066066929,
+  "conclusion": "C (microbatch 1, accumulation 4, activation checkpointing off) is the fastest configuration that fits: 49.9k token/s at 35.0 GiB. B provides 48.5k token/s at 25.3 GiB. D does not fit in 44.39 GiB and OOMs after step 1."
+}

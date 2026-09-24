@@ -223,6 +223,7 @@ def main() -> None:
             seed=seed,
             shuffle=True,
             drop_last=True,
+            samples_per_rank_multiple=micro_batch_size * accumulation_steps,
         )
         train_batches = infinite_train_batches(
             train_dataset,
@@ -329,6 +330,12 @@ def main() -> None:
                 "sha256": sha256_file(data_dir / "manifest.json"),
             },
             "train_coverage": train_dataset.coverage_report(),
+            "train_sampler": {
+                "samples_per_rank": train_sampler.num_samples,
+                "global_samples_per_epoch": train_sampler.total_size,
+                "dropped_samples_per_epoch": len(train_dataset) - train_sampler.total_size,
+                "samples_per_rank_multiple": train_sampler.samples_per_rank_multiple,
+            },
             "validation_coverage": validation_dataset.coverage_report(),
         }
         start_step = 0
