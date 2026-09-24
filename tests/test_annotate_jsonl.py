@@ -41,6 +41,12 @@ class AnnotateJsonlTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             module.make_job({"other": "x"}, 0, "excerpt", [], [], "p", "s", "m")
 
+    def test_temperature_changes_resume_key(self):
+        record = {"excerpt": "sample", "id": 1}
+        default = module.make_job(record, 0, "excerpt", ["id"], [], "p", "s", "m")
+        zero = module.make_job(record, 0, "excerpt", ["id"], [], "p", "s", "m", 0.0)
+        self.assertNotEqual(module.job_key(default), module.job_key(zero))
+
 
 if __name__ == "__main__":
     unittest.main()

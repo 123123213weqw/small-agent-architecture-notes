@@ -1,0 +1,25 @@
+{
+  "adapter": "runs/phase1_reader_v2_one_s0/adapter.pt",
+  "model": "Qwen/Qwen3-0.6B-Base",
+  "eval_samples_per_variant": 256,
+  "results": [
+    {
+      "variant": "standard",
+      "full_context": {
+        "nll": 0.6987829245626926,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 3.024926257921834e-06,
+        "wrong_memory_nll": 24.595241904258728,
+        "memory_nll_advantage": 24.59523887933247,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    }
+  ]
+}

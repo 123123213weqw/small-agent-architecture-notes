@@ -1,0 +1,15 @@
+[
+  {"source_file":"web_en.jsonl","source_row_idx":569158836,"expected_decision":"保留"},
+  {"source_file":"web_en.jsonl","source_row_idx":569158838,"expected_decision":"剔除"},
+  {"source_file":"web_zh.jsonl","source_row_idx":64171251,"expected_decision":"剔除"},
+  {"source_file":"web_zh.jsonl","source_row_idx":117018093,"expected_decision":"保留"},
+  {"source_file":"web_zh.jsonl","source_row_idx":117018094,"expected_decision":"剔除"},
+  {"source_file":"math.jsonl","source_row_idx":718587,"expected_decision":"剔除"},
+  {"source_file":"math.jsonl","source_row_idx":3879910,"expected_decision":"剔除"},
+  {"source_file":"math.jsonl","source_row_idx":5397476,"expected_decision":"保留"},
+  {"source_file":"math.jsonl","source_row_idx":5397479,"expected_decision":"保留"},
+  {"source_file":"math.jsonl","source_row_idx":6150360,"expected_decision":"剔除"},
+  {"source_file":"math.jsonl","source_row_idx":6150363,"expected_decision":"剔除"},
+  {"source_file":"ultradata_math_l2.jsonl","source_row_idx":5131675,"expected_decision":"保留"},
+  {"source_file":"ultradata_math_l2.jsonl","source_row_idx":9613690,"expected_decision":"保留"}
+]

@@ -63,13 +63,14 @@ def make_job(
     prompt_hash: str,
     schema_hash: str,
     model: str,
+    temperature: float | None = None,
 ) -> dict[str, Any]:
     text = get_field(record, text_field)
     if not isinstance(text, str) or not text.strip():
         raise ValueError(f"record {index}: {text_field!r} must be nonempty text")
     source_id = canonical_json([get_field(record, field) for field in id_fields]) if id_fields else str(index)
     source = {field: get_field(record, field) for field in carry_fields}
-    return {
+    job = {
         "source_id": source_id,
         "source_index": index,
         "source": source,
@@ -79,10 +80,13 @@ def make_job(
         "schema_sha256": schema_hash,
         "model": model,
     }
+    if temperature is not None:
+        job["temperature"] = temperature
+    return job
 
 
-def job_key(job: dict[str, Any]) -> tuple[str, str, str, str, str]:
-    return tuple(job[key] for key in ("source_id", "text_sha256", "prompt_sha256", "schema_sha256", "model"))
+def job_key(job: dict[str, Any]) -> tuple[str, str, str, str, str, float | None]:
+    return (*tuple(job[key] for key in ("source_id", "text_sha256", "prompt_sha256", "schema_sha256", "model")), job.get("temperature"))
 
 
 def completed_keys(path: Path) -> set[tuple[str, str, str, str, str]]:
@@ -112,6 +116,7 @@ def call_model(
     max_tokens: int,
     timeout: float,
     thinking: str,
+    temperature: float | None,
 ) -> tuple[dict[str, Any], dict[str, Any], str]:
     payload = {
         "model": model,
@@ -125,6 +130,8 @@ def call_model(
     }
     if thinking != "omit":
         payload["thinking"] = {"type": thinking}
+    if temperature is not None:
+        payload["temperature"] = temperature
     request = Request(
         api_base.rstrip("/") + "/chat/completions",
         data=canonical_json(payload).encode("utf-8"),
@@ -161,7 +168,7 @@ def call_model(
 def score_job(
     job: dict[str, Any], *, api_base: str, api_key: str, prompt: str,
     validator: Draft202012Validator, max_tokens: int, timeout: float,
-    max_retries: int, thinking: str,
+    max_retries: int, thinking: str, temperature: float | None,
 ) -> dict[str, Any]:
     error = "unknown error"
     for attempt in range(max_retries + 1):
@@ -175,6 +182,7 @@ def score_job(
                 max_tokens=max_tokens,
                 timeout=timeout,
                 thinking=thinking,
+                temperature=temperature,
             )
             problems = list(validator.iter_errors(annotation))
             if problems:
@@ -216,6 +224,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
     p.add_argument("--model", default="deepseek-flash")
     p.add_argument("--thinking", choices=("enabled", "disabled", "omit"), default="disabled")
+    p.add_argument("--temperature", type=float, default=None, help="0-2; omit to use API default")
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--limit", type=int, default=0, help="maximum pending records to run; 0 means all")
     p.add_argument("--max-tokens", type=int, default=384)
@@ -231,6 +240,8 @@ def main() -> int:
         raise ValueError("input and output must be different files")
     if args.workers < 1 or args.max_retries < 0 or args.limit < 0:
         raise ValueError("workers must be >=1; max-retries and limit must be >=0")
+    if args.temperature is not None and not 0 <= args.temperature <= 2:
+        raise ValueError("temperature must be in [0, 2]")
     prompt = args.prompt_file.read_text(encoding="utf-8").strip()
     if not prompt or "json" not in prompt.lower():
         raise ValueError("prompt must be nonempty and mention JSON for JSON output mode")
@@ -242,7 +253,7 @@ def main() -> int:
     carry_fields = [x.strip() for x in args.carry_fields.split(",") if x.strip()]
     records = read_records(args.input)
     jobs = [
-        make_job(r, i, args.text_field, id_fields, carry_fields, prompt_hash, schema_hash, args.model)
+        make_job(r, i, args.text_field, id_fields, carry_fields, prompt_hash, schema_hash, args.model, args.temperature)
         for i, r in enumerate(records)
     ]
     source_ids = [job["source_id"] for job in jobs]
@@ -268,6 +279,7 @@ def main() -> int:
                 score_job, job, api_base=args.api_base, api_key=api_key,
                 prompt=prompt, validator=validator, max_tokens=args.max_tokens,
                 timeout=args.timeout, max_retries=args.max_retries, thinking=args.thinking,
+                temperature=args.temperature,
             ): job["source_id"] for job in pending
         }
         for future in as_completed(futures):

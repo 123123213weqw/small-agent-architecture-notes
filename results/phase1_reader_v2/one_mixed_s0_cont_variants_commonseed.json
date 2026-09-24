@@ -1,0 +1,133 @@
+{
+  "adapter": "runs/phase1_reader_v2_one_mixed_s0_cont/adapter.pt",
+  "model": "Qwen/Qwen3-0.6B-Base",
+  "eval_samples_per_variant": 256,
+  "results": [
+    {
+      "variant": "standard",
+      "full_context": {
+        "nll": 0.6944554932415485,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.3438585908152163,
+        "wrong_memory_nll": 36.91069793701172,
+        "memory_nll_advantage": 36.5668393461965,
+        "accuracy": 0.84765625,
+        "digit_accuracy": 0.84765625,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "heldout_ids",
+      "full_context": {
+        "nll": 0.7794362604618073,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.4580348413437605,
+        "wrong_memory_nll": 37.398810386657715,
+        "memory_nll_advantage": 36.940775545313954,
+        "accuracy": 0.85546875,
+        "digit_accuracy": 0.85546875,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "paraphrase",
+      "full_context": {
+        "nll": 0.08003149088472128,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.6697291461750865,
+        "wrong_memory_nll": 28.77944314479828,
+        "memory_nll_advantage": 28.109713998623192,
+        "accuracy": 0.8203125,
+        "digit_accuracy": 0.8203125,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "delay",
+      "full_context": {
+        "nll": 0.6784839183092117,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.14785867813043296,
+        "wrong_memory_nll": 36.198607325553894,
+        "memory_nll_advantage": 36.05074864742346,
+        "accuracy": 0.9296875,
+        "digit_accuracy": 0.9296875,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "unseen_natural",
+      "full_context": {
+        "nll": 0.11905655544251204,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 45.07762622833252,
+        "wrong_memory_nll": 49.11005425453186,
+        "memory_nll_advantage": 4.032428026199341,
+        "accuracy": 0.1015625,
+        "digit_accuracy": 0.1015625,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "delay64",
+      "full_context": {
+        "nll": 0.5917485505342484,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.12792781530879438,
+        "wrong_memory_nll": 36.04035997390747,
+        "memory_nll_advantage": 35.912432158598676,
+        "accuracy": 0.93359375,
+        "digit_accuracy": 0.93359375,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "id_extreme",
+      "full_context": {
+        "nll": 0.8774107210338116,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.5358827174641192,
+        "wrong_memory_nll": 37.83696913719177,
+        "memory_nll_advantage": 37.30108641972765,
+        "accuracy": 0.84375,
+        "digit_accuracy": 0.84375,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    }
+  ]
+}

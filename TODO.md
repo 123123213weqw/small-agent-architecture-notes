@@ -1,8 +1,41 @@
 # TODO
 
+## 当前：从零训练 GDN 混合注意力 Base
+
+- [x] 选定线性层为 Gated DeltaNet（GDN）；旧效用记忆架构暂停，不接入首版 Base；
+- [x] 冻结 Byte-level BPE 32k `tokenizer_v1`，完成 P0 百万 token 的重新编码、split-safe token 流、38M 普通因果模型工程短跑和断点恢复；[记录](docs/p0-tokenizer-v1-engineering-smoke.zh.md)。这不算 GDN 验证或正式预训练；
+- [x] 在 L40 上完成随机初始化 8 层 GDN+GQA 的短序列前向/反向、整段与逐 token 一致性、BF16 短训练和断点恢复；[记录](docs/p0-gdn-gqa-correctness-smoke.zh.md)。当前缺快速 GDN 内核，不能据此评价长序列吞吐；
+- [x] 冻结文本专用 Base-1B-v1 结构与 tokenizer：32 层 `[GDN×3,GQA]×8`、宽 1536、FFN 4096、32k 词表、首阶段 4096 上下文；meta 实例化参数量 1,005,213,696；[架构文档](docs/base-1b-v1-architecture.zh.md)；
+- [x] 在 L40 上以项目局部依赖运行快速 GDN 内核，完成 2048/4096 上下文的 BF16 数值、前向/反向、显存和预热后吞吐短跑；[初次记录](docs/p0-gdn-fast-kernel-l40.zh.md)。初次试验的 fused norm 回退已在后续修正，数字仅供工程诊断；
+- [x] 显式设置 BF16 dtype，移除 fused norm 临时回退；锁定 L40 工程依赖、禁用用户 site-packages，复测长序列与断点恢复；[记录](docs/p0-gdn-l40-env-stabilization.zh.md)。
+- [x] 1B 目标配置在 L40 完成单卡 4096 真实 AdamW 更新与断点恢复、6 卡 DDP 更新与恢复、4/6 卡吞吐短跑及 6 卡梯度累积测试；[记录](docs/base-1b-v1-gpu-engineering.zh.md)。工程可运行不等于预训练可启动；
+- [ ] 8 卡、4096 上下文、累积 4 的目标配置短跑由用户决定以后再做；已停止自动等待队列，现有 GPU 6 任务不被中断；
+- [ ] 固定生产级 GDN 内核依赖，复测训练后模型的整段/递推生成一致性，并做参数、batch、精度、硬件和优化器匹配的普通 Transformer 对照；
+- [ ] 已锁定首版约 1B 结构并核对参数量；短程 GPU 测试已通过，仍须验收 8 卡与较长稳定性、锁定训练数据版本，再启动正式下一 token 预训练；
+- [ ] 从同一 Base checkpoint 分支做代码、数学和工具调用后训练。
+
+## 已暂停：旧记忆架构收敛
+
+- [x] 冻结[效用巩固记忆 v2 数学规范](docs/utility-consolidation-memory-v2.zh.md)：$S/C$ 双预算、可变 $r_i$、条件效用曲线、确定性联合分配与原生读取；
+- [x] 整理[整体架构旧草案](docs/architecture-current.zh.md)，分开 v1 淘汰公式、B2 实验性编码器和拟从零训练的原生主干；
+- [ ] 实现 v2 容量分配动态规划，单元测试硬预算、单条淘汰、平局规则以及 $R_{\max}=1$ 时与 v1 完全等价；
+- [ ] 实现教师效用曲线与有符号预测头，记录临时离线超预算、教师版本和各容量 $k$ 的覆盖率；
+- [ ] 用容量探索日程训练原生 Reader，分别报告固定 $r$、v2 预测分配和 v2 教师 Oracle；
+- [ ] 实测保留原文＋latent＋近期 KV 的总字节、训练 FLOPs 与动态规划/读取延迟；
+- [ ] 确认第一版从零训练主干数学与记忆 Cross-Attention 的接入层，不把 Qwen 外挂 Reader 当成最终结构；
+- [ ] 决定 v2 共享事件编码器与 SetEncoder 的具体层数，并消融 B2 年龄等实验性元数据；
+- [ ] 用可正可负的真实反事实语言模型损失检验效用输出头及排序辅助损失；
+- [ ] 冻结从零 A/B 的相同数据、Tokenizer、初始化、训练预算与实际状态字节预算；
+- [ ] 在同一原生记忆主干上比较 FIFO、预测效用与未来 Oracle，先验证 Reader 能用保留记录，再评价选择器。
+
 ## 基础预训练数据（新阶段）
 
 - [x] 更新[基础预训练数据规划 v0.2](docs/base-pretraining-data-plan.md)，明确先训练共享基础能力、不训练记忆选择器；
+- [x] 冻结[P0：5000 万 token 自动预训练数据管线计划](docs/p0-50m-data-pipeline-plan.md)，采用 DeepSeek 主教师、V100 本地 Qwen3.8-27B 抽样复核和程序化验证；
+- [ ] 完成 P0 候选来源 revision、许可和字段核查；
+- [ ] 实现 P0-A 100 万 token 全链路冒烟；
+- [ ] 通过验收后扩展到 P0-B 1000 万和 P0-C 5000 万 token；
+- [ ] 对规则、DeepSeek 过滤和不同比例合成数据做固定训练预算消融；
 - [ ] 重新调查 Hugging Face 上已有质量标注/人工复核的数据集，区分基础预训练、代码/数学补充与 SFT；
 - [ ] 新候选需先核实标签来源、时间、语言、许可证、正文可得性与规模，再建立清单；
 - [ ] 对通过来源核查的新候选做小样本人工复核，估计接受/可修复/排除比例；

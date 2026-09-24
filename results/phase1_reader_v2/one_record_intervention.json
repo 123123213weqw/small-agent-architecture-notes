@@ -1,0 +1,97 @@
+{
+  "adapter": "runs/phase1_reader_v2_mixed_s0/adapter.pt",
+  "model": "Qwen/Qwen3-0.6B-Base",
+  "eval_samples_per_variant": 256,
+  "results": [
+    {
+      "variant": "standard",
+      "full_context": {
+        "nll": 0.6987829245626926,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.010914083162788302,
+        "wrong_memory_nll": 7.0343674421310425,
+        "memory_nll_advantage": 7.023453358968254,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "paraphrase",
+      "full_context": {
+        "nll": 0.0804720357991755,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 2.3716976195573807,
+        "wrong_memory_nll": 2.3716976195573807,
+        "memory_nll_advantage": 0.0,
+        "accuracy": 0.11328125,
+        "digit_accuracy": 0.11328125,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "record_paraphrase_only",
+      "full_context": {
+        "nll": 0.5278707351535559,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 5.677730947732925,
+        "wrong_memory_nll": 6.790474504232407,
+        "memory_nll_advantage": 1.1127435564994812,
+        "accuracy": 0.203125,
+        "digit_accuracy": 0.203125,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "query_paraphrase_only",
+      "full_context": {
+        "nll": 0.06373302079737186,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 0.04282232199329883,
+        "wrong_memory_nll": 5.511099934577942,
+        "memory_nll_advantage": 5.468277612584643,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    },
+    {
+      "variant": "unseen_natural",
+      "full_context": {
+        "nll": 0.12236375594511628,
+        "accuracy": 1.0,
+        "digit_accuracy": 1.0,
+        "n": 256
+      },
+      "memory_reader": {
+        "nll": 3.144636146724224,
+        "wrong_memory_nll": 5.56826177239418,
+        "memory_nll_advantage": 2.423625625669956,
+        "accuracy": 0.3203125,
+        "digit_accuracy": 0.3203125,
+        "slot_accuracy": 1.0,
+        "n": 256
+      }
+    }
+  ]
+}

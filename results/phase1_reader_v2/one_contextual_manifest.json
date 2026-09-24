@@ -1,0 +1,15 @@
+{
+  "kind": "reader_v2_curriculum",
+  "base": "Qwen/Qwen3-0.6B-Base",
+  "base_revision": "da87bfb608c14b7cf20ba1ce41287e8de496c0cd",
+  "base_weight_sha256": "cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba",
+  "slots": 1,
+  "max_record_tokens": 48,
+  "seed": 260923,
+  "steps": 1000,
+  "batch_size": 16,
+  "lr": 0.0003,
+  "read_scale": 0.1,
+  "slot_loss_weight": 0.5,
+  "init_adapter": null
+}

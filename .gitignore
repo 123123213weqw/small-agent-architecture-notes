@@ -4,8 +4,10 @@ __pycache__/
 .venv/
 results/**/episode_metrics.csv
 results/**/model.pt
-runs/
+/runs/
 checkpoints/
-data/
+/data/
+.local-reports/
+.local-data/
 **/tensorboard/
 **/events.out.tfevents.*
