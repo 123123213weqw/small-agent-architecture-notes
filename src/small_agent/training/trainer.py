@@ -23,6 +23,11 @@ from torch.utils.tensorboard import SummaryWriter
 from small_agent.data import IndexedTokenDataset, StatefulDistributedSampler
 from small_agent.evaluation import evaluate_causal_lm
 from small_agent.models import build_model, load_model_spec
+from small_agent.training.checkpoint import (
+    load_full_checkpoint,
+    resolve_checkpoint,
+    save_full_checkpoint,
+)
 from small_agent.training.scheduler import TokenLRScheduler, WarmupCosineConfig
 
 
@@ -81,6 +86,7 @@ def infinite_train_batches(
     dataset: IndexedTokenDataset,
     sampler: StatefulDistributedSampler,
     batch_size: int,
+    loader_generator: torch.Generator,
 ) -> Iterator[dict[str, torch.Tensor]]:
     while True:
         loader = DataLoader(
@@ -90,6 +96,7 @@ def infinite_train_batches(
             num_workers=0,
             pin_memory=True,
             drop_last=True,
+            generator=loader_generator,
         )
         yielded = False
         for batch in loader:
@@ -105,6 +112,8 @@ def main() -> None:
     parser.add_argument("--run-config", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--save-final-checkpoint", action="store_true")
     args = parser.parse_args()
     if int(os.environ.get("WORLD_SIZE", "1")) != 1:
         parser.error("M2 trainer is single-GPU only; DDP is added in M4")
@@ -116,9 +125,13 @@ def main() -> None:
     data_dir = resolve_path(repository_root, run_config["data_dir"])
     output_root = resolve_path(repository_root, run_config["output_root"])
     run_dir = output_root / args.run_id
-    if run_dir.exists():
-        raise FileExistsError(run_dir)
-    run_dir.mkdir(parents=True)
+    if args.resume:
+        if not run_dir.is_dir():
+            raise FileNotFoundError(run_dir)
+    else:
+        if run_dir.exists():
+            raise FileExistsError(run_dir)
+        run_dir.mkdir(parents=True)
     metrics_path = run_dir / "metrics.jsonl"
     status_path = run_dir / "status.json"
     writer = SummaryWriter(log_dir=run_dir / "tensorboard")
@@ -150,7 +163,10 @@ def main() -> None:
             len(train_dataset), seed=seed, shuffle=True, drop_last=True
         )
         train_batches = infinite_train_batches(
-            train_dataset, train_sampler, micro_batch_size
+            train_dataset,
+            train_sampler,
+            micro_batch_size,
+            torch.Generator().manual_seed(seed + 10_000),
         )
         validation_loader = DataLoader(
             validation_dataset,
@@ -158,6 +174,7 @@ def main() -> None:
             shuffle=False,
             num_workers=0,
             pin_memory=True,
+            generator=torch.Generator().manual_seed(seed + 20_000),
         )
 
         model_spec = load_model_spec(model_spec_path)
@@ -186,6 +203,17 @@ def main() -> None:
         )
         scheduler = TokenLRScheduler(optimizer, scheduler_config)
 
+        compatibility = {
+            "run_config_sha256": sha256_file(config_path),
+            "model_spec_sha256": sha256_file(model_spec_path),
+            "data_manifest_sha256": sha256_file(data_dir / "manifest.json"),
+            "seed": seed,
+            "context_length": context_length,
+            "micro_batch_size": micro_batch_size,
+            "gradient_accumulation_steps": accumulation_steps,
+            "gradient_checkpointing": bool(run_config.get("gradient_checkpointing", False)),
+        }
+
         manifest = {
             "version": VERSION,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -211,11 +239,45 @@ def main() -> None:
             "train_coverage": train_dataset.coverage_report(),
             "validation_coverage": validation_dataset.coverage_report(),
         }
-        atomic_json(run_dir / "run_manifest.json", manifest)
-        atomic_json(status_path, {"state": "running", "step": 0, "tokens_seen": 0})
-        append_jsonl(metrics_path, {"event": "start", **manifest})
+        start_step = 0
+        if args.resume:
+            existing_manifest = json.loads(
+                (run_dir / "run_manifest.json").read_text(encoding="utf-8")
+            )
+            for field in ("run_config", "model_spec", "data_manifest"):
+                if existing_manifest[field]["sha256"] != manifest[field]["sha256"]:
+                    raise ValueError(f"run manifest changed across resume: {field}")
+            checkpoint_path = resolve_checkpoint(run_dir / "checkpoints")
+            checkpoint_manifest = load_full_checkpoint(
+                checkpoint_path,
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                sampler=train_sampler,
+                compatibility=compatibility,
+                device=device,
+            )
+            start_step = int(checkpoint_manifest["step"])
+            if max_steps <= start_step:
+                raise ValueError("max_steps must be greater than the resumed step")
+            append_jsonl(
+                metrics_path,
+                {
+                    "event": "resume",
+                    "step": start_step,
+                    "tokens_seen": scheduler.tokens_seen,
+                    "checkpoint": checkpoint_path.name,
+                },
+            )
+        else:
+            atomic_json(run_dir / "run_manifest.json", manifest)
+            append_jsonl(metrics_path, {"event": "start", **manifest})
+        atomic_json(
+            status_path,
+            {"state": "running", "step": start_step, "tokens_seen": scheduler.tokens_seen},
+        )
 
-        if run_config["validation"].get("at_start", True):
+        if not args.resume and run_config["validation"].get("at_start", True):
             validation = evaluate_causal_lm(model, validation_loader, device)
             row = {
                 "event": "validation",
@@ -230,6 +292,9 @@ def main() -> None:
 
         logging_interval = int(run_config["logging_interval_steps"])
         validation_interval = int(run_config["validation"]["interval_steps"])
+        checkpoint_interval = int(
+            run_config.get("checkpoint", {}).get("interval_steps", 0)
+        )
         window_loss = torch.zeros((), device=device)
         window_tokens = 0
         window_steps = 0
@@ -238,7 +303,7 @@ def main() -> None:
         window_started = time.perf_counter()
         window_elapsed = 0.0
 
-        for step in range(1, max_steps + 1):
+        for step in range(start_step + 1, max_steps + 1):
             optimizer.zero_grad(set_to_none=True)
             step_loss = torch.zeros((), device=device)
             step_tokens = 0
@@ -310,7 +375,29 @@ def main() -> None:
                 window_started = time.perf_counter()
                 window_elapsed = 0.0
 
-            if step % validation_interval == 0 or step == max_steps:
+            if checkpoint_interval and step % checkpoint_interval == 0:
+                checkpoint_path, checkpoint_manifest = save_full_checkpoint(
+                    run_dir / "checkpoints",
+                    step=step,
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    sampler=train_sampler,
+                    compatibility=compatibility,
+                    keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
+                )
+                append_jsonl(
+                    metrics_path,
+                    {
+                        "event": "checkpoint",
+                        "step": step,
+                        "tokens_seen": scheduler.tokens_seen,
+                        "directory": checkpoint_path.name,
+                        "elapsed_seconds": checkpoint_manifest["elapsed_seconds"],
+                    },
+                )
+
+            if step % validation_interval == 0:
                 if window_steps:
                     torch.cuda.synchronize(device)
                     window_elapsed += time.perf_counter() - window_started
@@ -328,6 +415,44 @@ def main() -> None:
                 writer.flush()
                 torch.cuda.synchronize(device)
                 window_started = time.perf_counter()
+
+        final_already_checkpointed = bool(
+            checkpoint_interval and max_steps % checkpoint_interval == 0
+        )
+        if args.save_final_checkpoint and not final_already_checkpointed:
+            checkpoint_path, checkpoint_manifest = save_full_checkpoint(
+                run_dir / "checkpoints",
+                step=max_steps,
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                sampler=train_sampler,
+                compatibility=compatibility,
+                keep=int(run_config.get("checkpoint", {}).get("keep_full", 2)),
+            )
+            append_jsonl(
+                metrics_path,
+                {
+                    "event": "checkpoint",
+                    "step": max_steps,
+                    "tokens_seen": scheduler.tokens_seen,
+                    "directory": checkpoint_path.name,
+                    "elapsed_seconds": checkpoint_manifest["elapsed_seconds"],
+                },
+            )
+
+        validation = evaluate_causal_lm(model, validation_loader, device)
+        row = {
+            "event": "validation",
+            "step": max_steps,
+            "tokens_seen": scheduler.tokens_seen,
+            **validation.__dict__,
+        }
+        append_jsonl(metrics_path, row)
+        print(json.dumps(row), flush=True)
+        writer.add_scalar("validation/loss", validation.loss, max_steps)
+        writer.add_scalar("validation/perplexity", validation.perplexity, max_steps)
+        writer.flush()
 
         atomic_json(
             status_path,

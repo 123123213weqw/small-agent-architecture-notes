@@ -1,0 +1,49 @@
+{
+  "purpose": "internal_checkpoint_resume_smoke",
+  "control_run": "m3_control_ckpt10_cont20_20260924_v1",
+  "resume_run": "m3_branch_resume10_20_20260924_v1",
+  "checkpoint_step": 10,
+  "final_step": 20,
+  "tokens_at_checkpoint": 163800,
+  "tokens_at_final": 327600,
+  "checkpoint_bytes": 12062929538,
+  "checkpoint_elapsed_seconds": 23.286,
+  "checkpoint10_artifacts": {
+    "model.safetensors": "ddf4b562ad18b231802346e2912332cd3ce896696b0dce2347122143a2a41b5b",
+    "optimizer.pt": "b4d1a7476a0d397d1035b6726d828ccad522cdbfa0dfb5e984f985d556b82ea1",
+    "runtime.pt": "23e46a364c13e65843aa6a7c9644cdbd40d75ba265d564a025ef0441a136814f",
+    "scheduler.json": "3b217e40a62ac3047240e95bb7b226c97e78cd08de85f817e7efc2d730f1d71d",
+    "sampler.json": "934d7274a71e648f78abb8ec2badf148d6550e705f829f29364b2210310dbad3"
+  },
+  "resume_comparison_steps_11_to_20": {
+    "learning_rate_tokens_epoch_cursor_exact": true,
+    "maximum_absolute_loss_difference": 0.0010538101196289062,
+    "mean_absolute_loss_difference": 0.0004281044006347656,
+    "maximum_absolute_gradient_norm_difference": 0.014403820037841797
+  },
+  "final_validation": {
+    "continuous": 8.9393174781431,
+    "resumed": 8.940120408642018,
+    "absolute_difference": 0.0008029304989189967
+  },
+  "final_model_difference": {
+    "bitwise_equal": false,
+    "parameters": 1005213696,
+    "unequal_fraction": 0.9998155606109052,
+    "maximum_absolute_difference": 0.001307561993598938,
+    "l2_difference": 0.45528947056609814,
+    "relative_l2_difference": 0.0007145312240404051
+  },
+  "final_state_hash_equality": {
+    "model": false,
+    "optimizer": false,
+    "runtime_rng": true,
+    "scheduler": true,
+    "sampler": true
+  },
+  "cpu_deterministic_continuation_test": "bitwise_exact",
+  "interpretation": "Checkpoint restoration is logically exact. The 1B GDN continuation is numerically close but not bitwise exact because the current CUDA/FLA/Triton path is nondeterministic.",
+  "run_config_sha256": "cbb30e908ea5ca2308250a969e3cd7724bd0edec869467321a1bee2e75893f97",
+  "model_spec_sha256": "51e728d13e95cf111825416b344092171d5e0cc266ab66c55b501bfd76753b1e",
+  "data_manifest_sha256": "4b62a5cd59e4615de411854b4c997ad566bcc2ea66748e3ea2055cec6f1584d0"
+}
