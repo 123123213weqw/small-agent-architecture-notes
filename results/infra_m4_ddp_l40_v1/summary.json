@@ -1,0 +1,117 @@
+{
+  "version": "infra_m4_ddp_l40_v1",
+  "date": "2026-09-24",
+  "stage": "engineering_only",
+  "model_parameters": 1005213696,
+  "context_length": 4096,
+  "micro_batch_size_per_gpu": 1,
+  "gradient_accumulation_steps": 4,
+  "stable_steps": [
+    4,
+    12
+  ],
+  "runs": {
+    "1": {
+      "run_id": "m4_s1_acc4_20260924_v1",
+      "world_size": 1,
+      "global_predicted_tokens_per_step": 16380,
+      "completed_steps": 12,
+      "tokens_seen": 196560,
+      "throughput_tokens_per_second": {
+        "median": 8404.625332475403,
+        "p10": 7797.625342932453,
+        "p90": 8459.319031372139,
+        "minimum": 7789.777330392671,
+        "maximum": 8472.104718874427
+      },
+      "scaling_efficiency_vs_single_gpu": 1.0,
+      "peak_allocated_gib": 19.243224620819092,
+      "peak_reserved_gib": 20.529296875,
+      "final_validation_loss": 10.174622209622118,
+      "speedup_vs_single_gpu": 1.0
+    },
+    "2": {
+      "run_id": "m4_d2_acc4_20260924_v1",
+      "world_size": 2,
+      "global_predicted_tokens_per_step": 32760,
+      "completed_steps": 12,
+      "tokens_seen": 393120,
+      "throughput_tokens_per_second": {
+        "median": 12404.375145682323,
+        "p10": 11985.514054695712,
+        "p90": 12670.006045408296,
+        "minimum": 11935.8334315002,
+        "maximum": 12708.212077836271
+      },
+      "scaling_efficiency_vs_single_gpu": 0.737949322842026,
+      "peak_allocated_gib": 22.988211154937744,
+      "peak_reserved_gib": 24.6328125,
+      "final_validation_loss": 8.9553203895097,
+      "speedup_vs_single_gpu": 1.475898645684052
+    },
+    "4": {
+      "run_id": "m4_d4_acc4_20260924_v1",
+      "world_size": 4,
+      "global_predicted_tokens_per_step": 65520,
+      "completed_steps": 12,
+      "tokens_seen": 786240,
+      "throughput_tokens_per_second": {
+        "median": 16753.199327427228,
+        "p10": 16127.830402587713,
+        "p90": 16775.04725557456,
+        "minimum": 16042.586689361055,
+        "maximum": 16784.016826356863
+      },
+      "scaling_efficiency_vs_single_gpu": 0.4983327234913436,
+      "peak_allocated_gib": 22.988211154937744,
+      "peak_reserved_gib": 24.6328125,
+      "final_validation_loss": 8.457741109183786,
+      "speedup_vs_single_gpu": 1.9933308939653744
+    },
+    "8": {
+      "run_id": "m4_d8_acc4_20260924_v1",
+      "world_size": 8,
+      "global_predicted_tokens_per_step": 131040,
+      "completed_steps": 12,
+      "tokens_seen": 1572480,
+      "throughput_tokens_per_second": {
+        "median": 31939.413499479506,
+        "p10": 30616.673717814796,
+        "p90": 32077.722061635784,
+        "minimum": 30546.508905995564,
+        "maximum": 32079.224105472593
+      },
+      "scaling_efficiency_vs_single_gpu": 0.4750273247765411,
+      "peak_allocated_gib": 22.988211154937744,
+      "peak_reserved_gib": 24.6328125,
+      "final_validation_loss": 8.21695009004597,
+      "speedup_vs_single_gpu": 3.8002185982123287
+    }
+  },
+  "profiler": {
+    "run_id": "m4_d8_profiler_20260924_v1",
+    "world_size": 8,
+    "captured_steps": [
+      6,
+      8
+    ],
+    "trace_remote_path": "/data1/wangyue/experiments/small-agent-base-1b-v1-engineering/runs/m4_d8_profiler_20260924_v1/profiler/node5_1223092.1790232093152549164.pt.trace.json",
+    "trace_bytes": 356654016,
+    "trace_sha256": "3a5468af20718b188cff1ea5fedc5e091fef21285f7e9fa7f17c13395816e926",
+    "operator_table_sha256": "488e9128d1dba4520083728f5f2953d9c7d096f47004cf1e362e66831a147739",
+    "self_cuda_time_total_seconds": 14.171,
+    "nccl_all_reduce_self_cuda_seconds": 7.525,
+    "nccl_all_reduce_self_cuda_percent": 53.1,
+    "aten_mm_self_cuda_seconds": 2.829,
+    "aten_mm_self_cuda_percent": 19.96,
+    "nccl_all_reduce_calls": 291,
+    "profiled_optimizer_steps": 3,
+    "caution": "Profiler self-CUDA totals can include overlapping kernels; percentages diagnose this run but are not a causal speedup estimate."
+  },
+  "topology": {
+    "gpu_model": "NVIDIA L40 46068 MiB",
+    "gpus": 8,
+    "layout": "GPU 0-3 are PIX on NUMA 0; GPU 4-7 are PIX on NUMA 1; cross-group links are SYS; no NVLink is reported."
+  },
+  "conclusion": "All 1/2/4/8-GPU runs completed. Eight GPUs reached 3.80x single-GPU throughput at 47.5% scaling efficiency; the rank-0 trace attributes 53.1% of self CUDA time to NCCL all-reduce, making communication the first optimization target."
+}

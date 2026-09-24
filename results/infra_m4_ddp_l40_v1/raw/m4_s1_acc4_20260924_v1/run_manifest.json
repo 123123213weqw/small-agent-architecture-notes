@@ -1,0 +1,51 @@
+{
+  "version": "small_agent_trainer_m4_v1",
+  "created_at": "2026-09-24T06:31:10.493897+00:00",
+  "run_id": "m4_s1_acc4_20260924_v1",
+  "purpose": "internal_ddp_throughput_smoke",
+  "distributable": false,
+  "source_revision": "unknown",
+  "host": "node5",
+  "platform": "Linux-5.15.0-190-generic-x86_64-with-glibc2.35",
+  "gpu": "NVIDIA L40",
+  "torch": "2.5.1+cu121",
+  "parameter_count": 1005213696,
+  "distributed": false,
+  "world_size": 1,
+  "global_sequences_per_step": 4,
+  "max_steps": 12,
+  "run_config": {
+    "path": "/data1/wangyue/experiments/small-agent-base-1b-v1-engineering/code/configs/runs/base_1b_m4_ddp_l40_v1.json",
+    "sha256": "13976442c31488f781425d15b49ef71004d8ca751ec6dc7cd9602560d40edd54"
+  },
+  "model_spec": {
+    "path": "/data1/wangyue/experiments/small-agent-base-1b-v1-engineering/code/configs/model/base_1b_gdn_v1.json",
+    "sha256": "51e728d13e95cf111825416b344092171d5e0cc266ab66c55b501bfd76753b1e"
+  },
+  "data_manifest": {
+    "path": "/data1/wangyue/experiments/small-agent-p0-engineering-v1/data/manifest.json",
+    "sha256": "4b62a5cd59e4615de411854b4c997ad566bcc2ea66748e3ea2055cec6f1584d0"
+  },
+  "train_coverage": {
+    "stream_tokens": 1110815,
+    "samples": 271,
+    "sequence_length": 4096,
+    "stride": 4095,
+    "tail_policy": "drop",
+    "predicted_tokens": 1109745,
+    "unpredicted_initial_tokens": 1,
+    "dropped_tail_tokens": 1069,
+    "prediction_coverage": 0.9990376426656488
+  },
+  "validation_coverage": {
+    "stream_tokens": 15329,
+    "samples": 4,
+    "sequence_length": 4096,
+    "stride": 4095,
+    "tail_policy": "pad",
+    "predicted_tokens": 15328,
+    "unpredicted_initial_tokens": 1,
+    "dropped_tail_tokens": 0,
+    "prediction_coverage": 1.0
+  }
+}

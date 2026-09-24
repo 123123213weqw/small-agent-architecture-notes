@@ -1,4 +1,4 @@
-"""Single-GPU M2 trainer used to validate the pretraining infrastructure."""
+"""Single-node pretraining trainer for one GPU or DDP."""
 
 from __future__ import annotations
 
@@ -17,7 +17,9 @@ import time
 from typing import Any, Iterator
 
 import torch
-from torch.utils.data import DataLoader
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
 
 from small_agent.data import IndexedTokenDataset, StatefulDistributedSampler
@@ -31,7 +33,40 @@ from small_agent.training.checkpoint import (
 from small_agent.training.scheduler import TokenLRScheduler, WarmupCosineConfig
 
 
-VERSION = "small_agent_trainer_m2_v1"
+VERSION = "small_agent_trainer_m4_v1"
+
+
+def distributed_context() -> tuple[bool, int, int, int]:
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    rank = int(os.environ.get("RANK", "0"))
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    if world_size < 1 or not 0 <= rank < world_size:
+        raise ValueError("invalid distributed environment")
+    if world_size > 1:
+        dist.init_process_group("nccl")
+    return world_size > 1, rank, local_rank, world_size
+
+
+def reduce_sum_int(value: int, device: torch.device) -> int:
+    tensor = torch.tensor(value, device=device, dtype=torch.int64)
+    if dist.is_initialized():
+        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+    return int(tensor)
+
+
+def reduce_mean(value: torch.Tensor) -> torch.Tensor:
+    result = value.detach().clone()
+    if dist.is_initialized():
+        dist.all_reduce(result, op=dist.ReduceOp.SUM)
+        result /= dist.get_world_size()
+    return result
+
+
+def reduce_max_float(value: float, device: torch.device) -> float:
+    tensor = torch.tensor(value, device=device, dtype=torch.float64)
+    if dist.is_initialized():
+        dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
+    return float(tensor)
 
 
 def sha256_file(path: Path) -> str:
@@ -39,6 +74,20 @@ def sha256_file(path: Path) -> str:
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
+    return digest.hexdigest()
+
+
+def sha256_source_tree(root: Path) -> str:
+    """Hash executable Python sources even when the remote snapshot has no .git."""
+    digest = hashlib.sha256()
+    source_root = root / "src" / "small_agent"
+    for path in sorted(source_root.rglob("*.py")):
+        relative = path.relative_to(root).as_posix().encode("utf-8")
+        digest.update(len(relative).to_bytes(4, "big"))
+        digest.update(relative)
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
     return digest.hexdigest()
 
 
@@ -115,8 +164,9 @@ def main() -> None:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--save-final-checkpoint", action="store_true")
     args = parser.parse_args()
-    if int(os.environ.get("WORLD_SIZE", "1")) != 1:
-        parser.error("M2 trainer is single-GPU only; DDP is added in M4")
+    distributed, rank, local_rank, world_size = distributed_context()
+    is_primary = rank == 0
+    torch.cuda.set_device(local_rank)
 
     config_path = args.run_config.resolve()
     run_config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -124,17 +174,24 @@ def main() -> None:
     model_spec_path = resolve_path(repository_root, run_config["model_spec"])
     data_dir = resolve_path(repository_root, run_config["data_dir"])
     output_root = resolve_path(repository_root, run_config["output_root"])
+    checkpoint_interval = int(run_config.get("checkpoint", {}).get("interval_steps", 0))
+    if distributed and (args.resume or args.save_final_checkpoint or checkpoint_interval):
+        parser.error("M4 DDP validates training/throughput only; distributed checkpointing is next")
     run_dir = output_root / args.run_id
-    if args.resume:
-        if not run_dir.is_dir():
-            raise FileNotFoundError(run_dir)
-    else:
-        if run_dir.exists():
-            raise FileExistsError(run_dir)
-        run_dir.mkdir(parents=True)
+    if is_primary:
+        if args.resume:
+            if not run_dir.is_dir():
+                raise FileNotFoundError(run_dir)
+        else:
+            if run_dir.exists():
+                raise FileExistsError(run_dir)
+            run_dir.mkdir(parents=True)
+    if distributed:
+        dist.barrier(device_ids=[local_rank])
     metrics_path = run_dir / "metrics.jsonl"
     status_path = run_dir / "status.json"
-    writer = SummaryWriter(log_dir=run_dir / "tensorboard")
+    writer = SummaryWriter(log_dir=run_dir / "tensorboard") if is_primary else None
+    profiler: torch.profiler.profile | None = None
 
     max_steps = args.max_steps or int(run_config["max_steps"])
     if max_steps < 1:
@@ -149,8 +206,7 @@ def main() -> None:
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.set_float32_matmul_precision("high")
-    device = torch.device("cuda", 0)
-    torch.cuda.set_device(device)
+    device = torch.device("cuda", local_rank)
 
     try:
         train_dataset = IndexedTokenDataset(
@@ -160,21 +216,29 @@ def main() -> None:
             data_dir, "validation", context_length, tail_policy="pad"
         )
         train_sampler = StatefulDistributedSampler(
-            len(train_dataset), seed=seed, shuffle=True, drop_last=True
+            len(train_dataset),
+            num_replicas=world_size,
+            rank=rank,
+            seed=seed,
+            shuffle=True,
+            drop_last=True,
         )
         train_batches = infinite_train_batches(
             train_dataset,
             train_sampler,
             micro_batch_size,
-            torch.Generator().manual_seed(seed + 10_000),
+            torch.Generator().manual_seed(seed + 10_000 + rank),
+        )
+        validation_subset = Subset(
+            validation_dataset, range(rank, len(validation_dataset), world_size)
         )
         validation_loader = DataLoader(
-            validation_dataset,
+            validation_subset,
             batch_size=int(run_config["validation"]["batch_size"]),
             shuffle=False,
             num_workers=0,
             pin_memory=True,
-            generator=torch.Generator().manual_seed(seed + 20_000),
+            generator=torch.Generator().manual_seed(seed + 20_000 + rank),
         )
 
         model_spec = load_model_spec(model_spec_path)
@@ -186,10 +250,22 @@ def main() -> None:
         model.config.use_cache = False
         model.train()
         parameter_count = sum(parameter.numel() for parameter in model.parameters())
+        training_model: torch.nn.Module = model
+        if distributed:
+            training_model = DDP(
+                model,
+                device_ids=[local_rank],
+                output_device=local_rank,
+                broadcast_buffers=False,
+                gradient_as_bucket_view=True,
+            )
+            # Keep initialization identical, then decorrelate stochastic layers.
+            torch.manual_seed(seed + rank)
+            torch.cuda.manual_seed_all(seed + rank)
 
         optimizer_config = run_config["optimizer"]
         optimizer = torch.optim.AdamW(
-            model.parameters(),
+            training_model.parameters(),
             lr=float(optimizer_config["maximum_learning_rate"]),
             betas=tuple(optimizer_config["betas"]),
             weight_decay=float(optimizer_config["weight_decay"]),
@@ -221,11 +297,15 @@ def main() -> None:
             "purpose": run_config["purpose"],
             "distributable": bool(run_config["distributable"]),
             "source_revision": source_revision(repository_root),
+            "source_tree_sha256": sha256_source_tree(repository_root),
             "host": socket.gethostname(),
             "platform": platform.platform(),
             "gpu": torch.cuda.get_device_name(device),
             "torch": torch.__version__,
             "parameter_count": parameter_count,
+            "distributed": distributed,
+            "world_size": world_size,
+            "global_sequences_per_step": micro_batch_size * accumulation_steps * world_size,
             "max_steps": max_steps,
             "run_config": {"path": str(config_path), "sha256": sha256_file(config_path)},
             "model_spec": {
@@ -270,12 +350,14 @@ def main() -> None:
                 },
             )
         else:
-            atomic_json(run_dir / "run_manifest.json", manifest)
-            append_jsonl(metrics_path, {"event": "start", **manifest})
-        atomic_json(
-            status_path,
-            {"state": "running", "step": start_step, "tokens_seen": scheduler.tokens_seen},
-        )
+            if is_primary:
+                atomic_json(run_dir / "run_manifest.json", manifest)
+                append_jsonl(metrics_path, {"event": "start", **manifest})
+        if is_primary:
+            atomic_json(
+                status_path,
+                {"state": "running", "step": start_step, "tokens_seen": scheduler.tokens_seen},
+            )
 
         if not args.resume and run_config["validation"].get("at_start", True):
             validation = evaluate_causal_lm(model, validation_loader, device)
@@ -285,16 +367,35 @@ def main() -> None:
                 "tokens_seen": 0,
                 **validation.__dict__,
             }
-            append_jsonl(metrics_path, row)
-            writer.add_scalar("validation/loss", validation.loss, 0)
-            writer.add_scalar("validation/perplexity", validation.perplexity, 0)
-            print(json.dumps(row), flush=True)
+            if is_primary:
+                append_jsonl(metrics_path, row)
+                writer.add_scalar("validation/loss", validation.loss, 0)
+                writer.add_scalar("validation/perplexity", validation.perplexity, 0)
+                print(json.dumps(row), flush=True)
 
         logging_interval = int(run_config["logging_interval_steps"])
         validation_interval = int(run_config["validation"]["interval_steps"])
-        checkpoint_interval = int(
-            run_config.get("checkpoint", {}).get("interval_steps", 0)
-        )
+        profiler_config = run_config.get("profiler", {})
+        if is_primary and profiler_config.get("enabled", False):
+            profiler_dir = run_dir / "profiler"
+            profiler_dir.mkdir(parents=True, exist_ok=True)
+            profiler = torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                schedule=torch.profiler.schedule(
+                    wait=int(profiler_config.get("wait_steps", 2)),
+                    warmup=int(profiler_config.get("warmup_steps", 2)),
+                    active=int(profiler_config.get("active_steps", 3)),
+                    repeat=1,
+                ),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler(str(profiler_dir)),
+                record_shapes=bool(profiler_config.get("record_shapes", False)),
+                profile_memory=bool(profiler_config.get("profile_memory", True)),
+                with_stack=bool(profiler_config.get("with_stack", False)),
+            )
+            profiler.start()
         window_loss = torch.zeros((), device=device)
         window_tokens = 0
         window_steps = 0
@@ -307,7 +408,7 @@ def main() -> None:
             optimizer.zero_grad(set_to_none=True)
             step_loss = torch.zeros((), device=device)
             step_tokens = 0
-            for _ in range(accumulation_steps):
+            for microstep in range(accumulation_steps):
                 batch = next(train_batches)
                 predicted_tokens = int(
                     torch.count_nonzero(batch["labels"][:, 1:] != -100)
@@ -315,60 +416,79 @@ def main() -> None:
                 input_ids = batch["input_ids"].to(device, non_blocking=True)
                 labels = batch["labels"].to(device, non_blocking=True)
                 attention_mask = batch["attention_mask"].to(device, non_blocking=True)
-                with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-                    output = model(
-                        input_ids=input_ids,
-                        labels=labels,
-                        attention_mask=attention_mask,
-                        use_cache=False,
-                    )
-                    loss = output.loss
-                if not torch.isfinite(loss):
-                    raise FloatingPointError(f"non-finite training loss at step {step}")
-                (loss / accumulation_steps).backward()
-                step_loss += loss.detach() / accumulation_steps
-                step_tokens += predicted_tokens
+                should_sync = not distributed or microstep == accumulation_steps - 1
+                synchronization = (
+                    nullcontext() if should_sync else training_model.no_sync()
+                )
+                with synchronization:
+                    with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+                        output = training_model(
+                            input_ids=input_ids,
+                            labels=labels,
+                            attention_mask=attention_mask,
+                            use_cache=False,
+                        )
+                        loss = output.loss
+                    if not torch.isfinite(loss):
+                        raise FloatingPointError(f"non-finite training loss at step {step}")
+                    (loss / accumulation_steps).backward()
+                    step_loss += loss.detach() / accumulation_steps
+                    step_tokens += predicted_tokens
 
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(),
+                training_model.parameters(),
                 float(optimizer_config["gradient_clip"]),
                 error_if_nonfinite=True,
             )
-            learning_rate = scheduler.step(step_tokens)
+            global_step_tokens = reduce_sum_int(step_tokens, device)
+            learning_rate = scheduler.step(global_step_tokens)
             optimizer.step()
+            if profiler is not None:
+                profiler.step()
             window_loss += step_loss
-            window_tokens += step_tokens
+            window_tokens += global_step_tokens
             window_steps += 1
 
             should_log = step % logging_interval == 0 or step == max_steps
             if should_log:
                 torch.cuda.synchronize(device)
-                elapsed = window_elapsed + time.perf_counter() - window_started
+                elapsed = reduce_max_float(
+                    window_elapsed + time.perf_counter() - window_started, device
+                )
+                mean_loss = reduce_mean(window_loss / window_steps)
+                maximum_grad_norm = reduce_max_float(float(grad_norm), device)
+                maximum_allocated = reduce_max_float(
+                    torch.cuda.max_memory_allocated(device) / 2**30, device
+                )
+                maximum_reserved = reduce_max_float(
+                    torch.cuda.max_memory_reserved(device) / 2**30, device
+                )
                 row = {
                     "event": "train",
                     "step": step,
                     "epoch": train_sampler.epoch,
                     "sampler_cursor": train_sampler.cursor,
                     "tokens_seen": scheduler.tokens_seen,
-                    "loss": float(window_loss / window_steps),
+                    "loss": float(mean_loss),
                     "learning_rate": learning_rate,
-                    "grad_norm": float(grad_norm),
+                    "grad_norm": maximum_grad_norm,
                     "tokens_per_second": window_tokens / elapsed,
-                    "peak_allocated_gib": torch.cuda.max_memory_allocated(device) / 2**30,
-                    "peak_reserved_gib": torch.cuda.max_memory_reserved(device) / 2**30,
+                    "peak_allocated_gib": maximum_allocated,
+                    "peak_reserved_gib": maximum_reserved,
                 }
-                append_jsonl(metrics_path, row)
-                print(json.dumps(row), flush=True)
-                for key in ("loss", "learning_rate", "grad_norm", "tokens_per_second"):
-                    writer.add_scalar(f"train/{key}", row[key], step)
-                writer.add_scalar("train/tokens_seen", scheduler.tokens_seen, step)
-                writer.add_scalar("system/gpu_allocated_gib", row["peak_allocated_gib"], step)
-                writer.add_scalar("system/gpu_reserved_gib", row["peak_reserved_gib"], step)
-                writer.flush()
-                atomic_json(
-                    status_path,
-                    {"state": "running", "step": step, "tokens_seen": scheduler.tokens_seen},
-                )
+                if is_primary:
+                    append_jsonl(metrics_path, row)
+                    print(json.dumps(row), flush=True)
+                    for key in ("loss", "learning_rate", "grad_norm", "tokens_per_second"):
+                        writer.add_scalar(f"train/{key}", row[key], step)
+                    writer.add_scalar("train/tokens_seen", scheduler.tokens_seen, step)
+                    writer.add_scalar("system/gpu_allocated_gib", row["peak_allocated_gib"], step)
+                    writer.add_scalar("system/gpu_reserved_gib", row["peak_reserved_gib"], step)
+                    writer.flush()
+                    atomic_json(
+                        status_path,
+                        {"state": "running", "step": step, "tokens_seen": scheduler.tokens_seen},
+                    )
                 window_loss.zero_()
                 window_tokens = 0
                 window_steps = 0
@@ -408,11 +528,12 @@ def main() -> None:
                     "tokens_seen": scheduler.tokens_seen,
                     **validation.__dict__,
                 }
-                append_jsonl(metrics_path, row)
-                print(json.dumps(row), flush=True)
-                writer.add_scalar("validation/loss", validation.loss, step)
-                writer.add_scalar("validation/perplexity", validation.perplexity, step)
-                writer.flush()
+                if is_primary:
+                    append_jsonl(metrics_path, row)
+                    print(json.dumps(row), flush=True)
+                    writer.add_scalar("validation/loss", validation.loss, step)
+                    writer.add_scalar("validation/perplexity", validation.perplexity, step)
+                    writer.flush()
                 torch.cuda.synchronize(device)
                 window_started = time.perf_counter()
 
@@ -448,24 +569,41 @@ def main() -> None:
             "tokens_seen": scheduler.tokens_seen,
             **validation.__dict__,
         }
-        append_jsonl(metrics_path, row)
-        print(json.dumps(row), flush=True)
-        writer.add_scalar("validation/loss", validation.loss, max_steps)
-        writer.add_scalar("validation/perplexity", validation.perplexity, max_steps)
-        writer.flush()
+        if is_primary:
+            append_jsonl(metrics_path, row)
+            print(json.dumps(row), flush=True)
+            writer.add_scalar("validation/loss", validation.loss, max_steps)
+            writer.add_scalar("validation/perplexity", validation.perplexity, max_steps)
+            writer.flush()
 
-        atomic_json(
-            status_path,
-            {"state": "completed", "step": max_steps, "tokens_seen": scheduler.tokens_seen},
-        )
+            atomic_json(
+                status_path,
+                {"state": "completed", "step": max_steps, "tokens_seen": scheduler.tokens_seen},
+            )
+        if profiler is not None:
+            profiler.stop()
+            (run_dir / "profiler_operator_table.txt").write_text(
+                profiler.key_averages().table(
+                    sort_by="self_cuda_time_total", row_limit=80
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            profiler = None
     except BaseException as error:
-        atomic_json(
-            status_path,
-            {"state": "failed", "error_type": type(error).__name__, "error": str(error)},
-        )
+        if is_primary:
+            atomic_json(
+                status_path,
+                {"state": "failed", "error_type": type(error).__name__, "error": str(error)},
+            )
         raise
     finally:
-        writer.close()
+        if profiler is not None:
+            profiler.stop()
+        if writer is not None:
+            writer.close()
+        if dist.is_initialized():
+            dist.destroy_process_group()
 
 
 if __name__ == "__main__":
