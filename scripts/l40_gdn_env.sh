@@ -9,7 +9,7 @@ if [[ ! -x "$PYTHON" || ! -d "$ROOT/deps" || ! -d "$ROOT/code" ]]; then
   exit 2
 fi
 
-export PYTHONPATH="$ROOT/deps:$ROOT/code"
+export PYTHONPATH="$ROOT/deps:$ROOT/code/src:$ROOT/code"
 export PYTHONNOUSERSITE=1
 export TRITON_CACHE_DIR="$ROOT/triton-cache"
 export TMPDIR="$ROOT/tmp"
