@@ -1,0 +1,146 @@
+{
+  "version": "infra_m6_c_stability200_v1",
+  "date": "2026-09-24",
+  "stage": "engineering_only",
+  "run_id": "m6_c_stability200_20260924_v1",
+  "configuration": {
+    "world_size": 8,
+    "context_length": 4096,
+    "micro_batch_size": 1,
+    "gradient_accumulation_steps": 4,
+    "gradient_checkpointing": false,
+    "communication_hook": "bf16",
+    "bucket_cap_mb": 25,
+    "steps": 200
+  },
+  "completion": {
+    "state": "completed",
+    "step": 200,
+    "tokens_seen": 26208000
+  },
+  "throughput_steps_4_200": {
+    "median_tokens_per_second": 49697.570413253074,
+    "mean_tokens_per_second": 49762.40019803295,
+    "minimum_tokens_per_second": 46422.43052276923,
+    "maximum_tokens_per_second": 50934.518117111584
+  },
+  "throughput_windows": {
+    "4-25": {
+      "median_tokens_per_second": 50572.44821149697,
+      "p10_tokens_per_second": 48707.26019305195,
+      "p90_tokens_per_second": 50792.136388782805
+    },
+    "26-50": {
+      "median_tokens_per_second": 50246.95533162218,
+      "p10_tokens_per_second": 49996.90228354339,
+      "p90_tokens_per_second": 50362.792782204335
+    },
+    "51-100": {
+      "median_tokens_per_second": 49807.85475093445,
+      "p10_tokens_per_second": 49639.71121411483,
+      "p90_tokens_per_second": 50021.037330661806
+    },
+    "101-150": {
+      "median_tokens_per_second": 49611.74928808863,
+      "p10_tokens_per_second": 49447.91842690877,
+      "p90_tokens_per_second": 49744.14759563657
+    },
+    "151-200": {
+      "median_tokens_per_second": 49519.86829744489,
+      "p10_tokens_per_second": 49373.028512024066,
+      "p90_tokens_per_second": 49659.65200172057
+    }
+  },
+  "memory": {
+    "maximum_peak_allocated_gib": 34.98755598068237,
+    "maximum_peak_reserved_gib": 36.75,
+    "allocation_values": [
+      27.472658157348633,
+      34.984981060028076,
+      34.98755598068237
+    ],
+    "reservation_values": [
+      30.53125,
+      36.75
+    ]
+  },
+  "numerical": {
+    "all_train_losses_finite": true,
+    "all_gradient_norms_finite": true,
+    "maximum_gradient_norm": 21.2741756439209,
+    "gradient_clip_threshold": 1.0,
+    "initial_train_loss": 10.698734283447266,
+    "final_train_loss": 0.05451906472444534
+  },
+  "validation": [
+    {
+      "step": 0,
+      "tokens_seen": 0,
+      "loss": 10.722793393505889,
+      "perplexity": 45378.48592936639,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 25,
+      "tokens_seen": 3276000,
+      "loss": 7.588713387233479,
+      "perplexity": 1975.7698270439241,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 50,
+      "tokens_seen": 6552000,
+      "loss": 7.87762298977823,
+      "perplexity": 2637.5955108632406,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 75,
+      "tokens_seen": 9828000,
+      "loss": 8.058655516526395,
+      "perplexity": 3161.0373136465973,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 100,
+      "tokens_seen": 13104000,
+      "loss": 8.05094351521489,
+      "perplexity": 3136.753149847765,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 125,
+      "tokens_seen": 16380000,
+      "loss": 8.083984378795286,
+      "perplexity": 3242.1253916367514,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 150,
+      "tokens_seen": 19656000,
+      "loss": 8.184697481436123,
+      "perplexity": 3585.658726834173,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 175,
+      "tokens_seen": 22932000,
+      "loss": 8.24438981612316,
+      "perplexity": 3806.2122599430804,
+      "predicted_tokens": 15328
+    },
+    {
+      "step": 200,
+      "tokens_seen": 26208000,
+      "loss": 8.265263484017087,
+      "perplexity": 3886.496872716645,
+      "predicted_tokens": 15328
+    }
+  ],
+  "observations": [
+    "The run completed all 200 optimizer steps and 26.208M predicted tokens without OOM or non-finite values.",
+    "Peak allocated and reserved memory remained constant after warmup.",
+    "The tiny 1.11M-token smoke corpus was reused for 24 epochs, so training loss collapse measures overfitting and pipeline stability, not model quality.",
+    "The current trainer emits final validation twice when max_steps is divisible by validation_interval; identical duplicate rows were deduplicated in this summary."
+  ]
+}
