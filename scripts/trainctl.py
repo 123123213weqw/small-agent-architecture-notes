@@ -567,6 +567,11 @@ def run_preflight(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, s
             "python": str(python),
         },
         "runtime": runtime,
+        "distributed_socket_environment": {
+            key: environment[key]
+            for key in ("NCCL_SOCKET_IFNAME", "GLOO_SOCKET_IFNAME")
+            if key in environment
+        },
         "gpu": {
             "cuda_visible_devices": args.cuda_visible_devices,
             "nproc_per_node": args.nproc_per_node,
@@ -603,8 +608,11 @@ def launch_detached(
         "OMP_NUM_THREADS",
         "CUDA_VISIBLE_DEVICES",
         "SMALL_AGENT_SOURCE_COMMIT",
+        "NCCL_SOCKET_IFNAME",
+        "GLOO_SOCKET_IFNAME",
     ):
-        systemd_command.append(f"--setenv={key}={environment[key]}")
+        if key in environment:
+            systemd_command.append(f"--setenv={key}={environment[key]}")
     systemd_command += list(command)
     try:
         subprocess.run(systemd_command, check=True)

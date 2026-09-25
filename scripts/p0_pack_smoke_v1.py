@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Encode the frozen P0 smoke documents with tokenizer_v1 into split-safe streams."""
+"""Encode frozen P0 smoke or approved-real documents into split-safe streams."""
 
 from __future__ import annotations
 
@@ -28,8 +28,14 @@ def pack(source: Path, tokenizer_dir: Path, output: Path, sequence_length: int) 
         raise FileExistsError(output)
     source_manifest = json.loads((source / "manifest.json").read_text())
     tokenizer_manifest = json.loads((tokenizer_dir / "manifest.json").read_text())
-    if source_manifest.get("stage") != "p0_1m_smoke_frozen":
+    source_stage = source_manifest.get("stage")
+    if source_stage not in {"p0_1m_smoke_frozen", "accepted_real"}:
         raise ValueError("unexpected source stage")
+    if (
+        source_stage == "accepted_real"
+        and not source_manifest.get("license_gate", {}).get("training_eligible")
+    ):
+        raise ValueError("accepted_real source is not training eligible")
     if tokenizer_manifest.get("stage") != "frozen_tokenizer":
         raise ValueError("tokenizer_v1 is not frozen")
     tokenizer_path = tokenizer_dir / "tokenizer.json"
@@ -46,7 +52,10 @@ def pack(source: Path, tokenizer_dir: Path, output: Path, sequence_length: int) 
         if path.stat().st_size != shard["bytes"] or sha256(path) != shard["sha256"]:
             raise ValueError(f"source shard integrity failure: {path}")
         rows.extend(pq.read_table(path, columns=["document_id", "split", "sample_rank", "text"]).to_pylist())
-    if len(rows) != source_manifest["counts"]["documents"]:
+    expected_documents = source_manifest["counts"][
+        "accepted_documents" if source_stage == "accepted_real" else "documents"
+    ]
+    if len(rows) != expected_documents:
         raise ValueError("source document count mismatch")
     rows.sort(key=lambda row: (row["sample_rank"], row["document_id"]))
     streams = {split: [] for split in ("train", "validation", "test")}
@@ -64,7 +73,10 @@ def pack(source: Path, tokenizer_dir: Path, output: Path, sequence_length: int) 
         streams[split].extend(ids)
         streams[split].append(eos)
         spans[split].append({"document_id": row["document_id"], "start": start, "end": len(streams[split])})
-    if {split: len(items) for split, items in spans.items()} != source_manifest["splits"]:
+    if (
+        source_stage == "p0_1m_smoke_frozen"
+        and {split: len(items) for split, items in spans.items()} != source_manifest["splits"]
+    ):
         raise ValueError("split document counts changed")
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f".{output.name}.tmp-", dir=output.parent) as tmp_name:
@@ -80,7 +92,12 @@ def pack(source: Path, tokenizer_dir: Path, output: Path, sequence_length: int) 
                 "file": path.name, "bytes": path.stat().st_size, "sha256": sha256(path),
             }
         manifest = {
-            "version": "p0_pack_smoke_v1", "stage": "internal_smoke_token_stream",
+            "version": "p0_pack_smoke_v1",
+            "stage": (
+                "approved_real_token_stream"
+                if source_stage == "accepted_real"
+                else "internal_smoke_token_stream"
+            ),
             "sequence_length": sequence_length, "dtype": "uint16",
             "source_manifest_sha256": sha256(source / "manifest.json"),
             "tokenizer_manifest_sha256": sha256(tokenizer_dir / "manifest.json"),

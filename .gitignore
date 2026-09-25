@@ -7,7 +7,15 @@ results/**/model.pt
 /runs/
 checkpoints/
 /data/
+/eval-data/
+/eval-cache/
+/eval-deps/
+/tokenized/
+/upstream/
 .local-reports/
 .local-data/
+*.safetensors
+*.parquet
+*.arrow
 **/tensorboard/
 **/events.out.tfevents.*

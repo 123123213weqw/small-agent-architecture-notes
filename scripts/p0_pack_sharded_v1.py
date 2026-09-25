@@ -34,15 +34,24 @@ def from_token_jsonl(path: Path) -> Iterator[TokenizedDocument]:
                 raise ValueError(f"bad token JSONL row {line_no}") from error
 
 
-def from_frozen_parquet(source: Path, tokenizer_dir: Path) -> tuple[Iterator[TokenizedDocument], dict, dict]:
+def from_frozen_parquet(
+    source: Path, tokenizer_dir: Path, *, internal_candidate_smoke: bool = False
+) -> tuple[Iterator[TokenizedDocument], dict, dict]:
     import pyarrow.parquet as pq
     from tokenizers import Tokenizer
 
     source_manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     tokenizer_manifest = json.loads((tokenizer_dir / "manifest.json").read_text(encoding="utf-8"))
     source_stage = source_manifest.get("stage")
-    if source_stage not in {"accepted_real", "p0_1m_smoke_frozen"}:
+    supported = {"accepted_real", "p0_1m_smoke_frozen"}
+    if internal_candidate_smoke:
+        supported.add("consolidate_candidates")
+    if source_stage not in supported:
         raise ValueError("unsupported frozen source stage")
+    if internal_candidate_smoke and source_stage != "consolidate_candidates":
+        raise ValueError("internal candidate smoke requires consolidate_candidates source")
+    if source_stage == "consolidate_candidates" and not source_manifest.get("license_gate", {}).get("training_eligible"):
+        raise ValueError("candidate source license gate is not approved")
     if source_stage == "accepted_real" and not source_manifest.get("license_gate", {}).get("training_eligible"):
         raise ValueError("approved source is not training eligible")
     if tokenizer_manifest.get("stage") != "frozen_tokenizer":
@@ -76,9 +85,12 @@ def from_frozen_parquet(source: Path, tokenizer_dir: Path) -> tuple[Iterator[Tok
                         token_ids=ids,
                     )
         counts = source_manifest.get("counts", {})
-        expected_documents = counts.get(
-            "accepted_documents" if source_stage == "accepted_real" else "documents"
-        )
+        count_field = {
+            "accepted_real": "accepted_documents",
+            "p0_1m_smoke_frozen": "documents",
+            "consolidate_candidates": "retained_documents",
+        }[source_stage]
+        expected_documents = counts.get(count_field)
         if expected_documents is not None and seen != expected_documents:
             raise ValueError(f"source document count changed: {seen} != {expected_documents}")
         if source_stage == "p0_1m_smoke_frozen" and splits != source_manifest["splits"]:
@@ -97,6 +109,10 @@ def main() -> None:
     sources.add_argument("--source", type=Path, help="frozen accepted_real/P0 Parquet directory")
     sources.add_argument("--tokenized-jsonl", type=Path, help="already-tokenized documents")
     parser.add_argument("--tokenizer", type=Path, help="required with --source")
+    parser.add_argument(
+        "--internal-candidate-smoke", action="store_true",
+        help="explicitly pack license-approved but quality-unreviewed candidates for non-distributable diagnostic runs",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--mixture-json", type=Path, required=True)
     parser.add_argument("--sequence-length", type=int, default=4096)
@@ -109,10 +125,22 @@ def main() -> None:
     if args.source:
         if not args.tokenizer:
             parser.error("--tokenizer is required with --source")
-        documents, source_manifest, tokenizer = from_frozen_parquet(args.source, args.tokenizer)
+        documents, source_manifest, tokenizer = from_frozen_parquet(
+            args.source, args.tokenizer, internal_candidate_smoke=args.internal_candidate_smoke
+        )
         license_gate = source_manifest["license_gate"]
+        if args.internal_candidate_smoke:
+            license_gate = {
+                "training_eligible": False,
+                "source_license_eligible": True,
+                "quality_approved": False,
+                "source_stage": "consolidate_candidates",
+                "restriction": "internal_non_distributable_diagnostic_only",
+            }
         source_hash = sha256_file(args.source / "manifest.json")
     else:
+        if args.internal_candidate_smoke:
+            parser.error("--internal-candidate-smoke requires --source")
         if args.vocab_size is None or args.eos_token_id is None or not args.tokenizer_sha256:
             parser.error("token JSONL requires --vocab-size, --eos-token-id, --tokenizer-sha256")
         documents = from_token_jsonl(args.tokenized_jsonl)

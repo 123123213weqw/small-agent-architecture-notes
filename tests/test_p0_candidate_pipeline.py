@@ -42,6 +42,16 @@ class P0CandidatePipelineTests(unittest.TestCase):
         self.assertEqual(PIPELINE.jaccard({1, 2}, {1, 2}), 1.0)
         self.assertEqual(PIPELINE.jaccard({1}, {2}), 0.0)
 
+    def test_source_prescreen_fails_closed_and_is_opt_in(self):
+        rule = {"min_score": 3.5}
+        PIPELINE.validate_source_prescreen({"finemath": rule})
+        self.assertTrue(PIPELINE.passes_source_prescreen('{"score":3.5}', rule))
+        self.assertFalse(PIPELINE.passes_source_prescreen('{"score":3.49}', rule))
+        for metadata in (None, "{}", "not-json", '{"score":null}', '{"score":"4"}', '{"score":NaN}'):
+            self.assertFalse(PIPELINE.passes_source_prescreen(metadata, rule))
+        with self.assertRaises(ValueError):
+            PIPELINE.validate_source_prescreen({"finemath": {"min_score": float("nan")}})
+
     def test_candidate_manifest_compatibility(self):
         base = {
             "stage": "build_candidates",

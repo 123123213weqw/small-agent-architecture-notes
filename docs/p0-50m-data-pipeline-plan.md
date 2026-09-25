@@ -457,6 +457,8 @@ V100 上的三个独立候选池已合并到：
 
 该冒烟集由 `accepted_real_v1` 派生，而后者 690 篇真实文档的 `license_status` 字段已逐行固化为 `pending`，所以在重跑前它**仍不允许标为正式训练可用**。来源许可已于 2026-09-24 批准（见 [P0 来源许可批准记录 v1](p0-source-license-approval-v1.zh.md)），但 `training_eligible` 是由产物内容计算出来的（`p0_freeze_accepted.py`：`set(license_status) <= {"approved"}`），必须按同一实现重跑 `normalize → build → consolidate → freeze` 才能得到 `training_eligible=true` 的新 manifest；**不得手工修改既有 manifest 的 `license_gate` 字段**，重跑后还要逐项比对文档 ID 与 shard 行数，确认候选集未因许可门变化而改变。
 
+2026-09-24 已在新目录完成该重建和逐项核验，旧冒烟集仍保持原样；新冻结真实语料及新增合成数据的独立审计见 [P0-A 真实语料重建与新增合成语料审计 v1](p0-a-approved-rebuild-and-generated-audit-v1.zh.md)。
+
 ### P0-B：1000 万 token 试产
 
 测量教师吞吐、API 失败率、输出解析率、过滤率、去重率、合成验证通过率、JFS I/O 和实际成本。任何阶段不得靠手工修改结果文件完成。

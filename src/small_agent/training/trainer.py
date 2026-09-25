@@ -211,6 +211,9 @@ def main() -> None:
     data_dir = resolve_path(repository_root, run_config["data_dir"])
     output_root = resolve_path(repository_root, run_config["output_root"])
     checkpoint_interval = int(run_config.get("checkpoint", {}).get("interval_steps", 0))
+    checkpoint_steps = {int(value) for value in run_config.get("checkpoint", {}).get("steps", [])}
+    if checkpoint_interval < 0 or any(value < 1 for value in checkpoint_steps):
+        raise ValueError("checkpoint interval and explicit steps must be non-negative")
     run_dir = output_root / args.run_id
     if is_primary:
         if args.resume:
@@ -656,7 +659,7 @@ def main() -> None:
                 window_started = time.perf_counter()
                 window_elapsed = 0.0
 
-            if checkpoint_interval and step % checkpoint_interval == 0:
+            if (checkpoint_interval and step % checkpoint_interval == 0) or step in checkpoint_steps:
                 if window_steps:
                     torch.cuda.synchronize(device)
                     window_elapsed += time.perf_counter() - window_started
@@ -720,7 +723,8 @@ def main() -> None:
                 window_started = time.perf_counter()
 
         final_already_checkpointed = bool(
-            checkpoint_interval and max_steps % checkpoint_interval == 0
+            (checkpoint_interval and max_steps % checkpoint_interval == 0)
+            or max_steps in checkpoint_steps
         )
         if args.save_final_checkpoint and not final_already_checkpointed:
             if distributed:

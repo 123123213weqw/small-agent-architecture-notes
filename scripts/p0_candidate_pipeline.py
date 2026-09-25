@@ -24,6 +24,7 @@ import hashlib
 import heapq
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import random
@@ -410,11 +411,38 @@ def create_exact_index(database: Path) -> sqlite3.Connection:
     return connection
 
 
+def validate_source_prescreen(rules: Any) -> None:
+    """Validate optional, source-specific metadata thresholds before indexing."""
+    if not isinstance(rules, dict):
+        raise ValueError("source_prescreen must be a mapping of source IDs to rules")
+    for source_id, rule in rules.items():
+        if not isinstance(source_id, str) or not source_id or not isinstance(rule, dict):
+            raise ValueError("source_prescreen needs non-empty source IDs and rule objects")
+        if not rule or set(rule) != {"min_score"}:
+            raise ValueError(f"{source_id}: only min_score is supported")
+        threshold = rule["min_score"]
+        if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not math.isfinite(threshold):
+            raise ValueError(f"{source_id}: min_score must be finite numeric")
+
+
+def passes_source_prescreen(metadata_json: str | None, rule: dict[str, Any]) -> bool:
+    """Fail closed on missing, malformed or non-finite source classifier scores."""
+    try:
+        metadata = json.loads(metadata_json or "")
+        score = metadata["score"]
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            return False
+        return math.isfinite(score) and score >= rule["min_score"]
+    except (TypeError, ValueError, KeyError):
+        return False
+
+
 def index_normalized_documents(
     files: list[tuple[dict[str, Any], Path]],
     database: Path,
     seed: int,
     allow_pending_license: bool,
+    source_prescreen: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[sqlite3.Connection, dict[str, int]]:
     _, pq = require_pyarrow()
     connection = create_exact_index(database)
@@ -434,12 +462,15 @@ def index_normalized_documents(
             row_index=excluded.row_index
         WHERE excluded.sample_rank < documents.sample_rank
     """
-    for _, path in files:
+    source_prescreen = source_prescreen or {}
+    for entry, path in files:
+        source_rule = source_prescreen.get(entry["source_id"])
         table = pq.read_table(
             path,
             columns=[
                 "normalized_sha256", "document_id", "family_id", "domain",
                 "license_status", "rule_keep",
+                *(["source_metadata_json"] if source_rule else []),
             ],
         )
         rows = table.to_pylist()
@@ -454,6 +485,9 @@ def index_normalized_documents(
                 license_status != "approved" and not allow_pending_license
             ):
                 counters["rejected_license"] += 1
+                continue
+            if source_rule and not passes_source_prescreen(row["source_metadata_json"], source_rule):
+                counters[f"rejected_source_prescreen:{entry['source_id']}"] += 1
                 continue
             rank = stable_sample_rank(seed, row["document_id"])
             pending.append(
@@ -706,8 +740,13 @@ def command_build(args: argparse.Namespace) -> None:
     registry = load_registry(Path(args.registry))
     pipeline = CORE.load_json(Path(args.pipeline_config))
     CORE.validate_pipeline_config(pipeline)
+    source_prescreen = pipeline.get("source_prescreen", {})
+    validate_source_prescreen(source_prescreen)
     data_root = Path(args.data_root).resolve()
     entries = selected_registry_entries(registry, set(args.source_id) if args.source_id else None)
+    unknown_rules = sorted(set(source_prescreen) - {entry["source_id"] for entry in registry["sources"]})
+    if unknown_rules:
+        raise ValueError(f"source_prescreen has unknown source IDs: {unknown_rules}")
     files = normalized_files(data_root, entries)
     if not files:
         raise ValueError("no normalized Parquet shards found")
@@ -721,6 +760,7 @@ def command_build(args: argparse.Namespace) -> None:
         work / f"{args.candidate_dir_name}_exact_index.sqlite",
         pipeline["pipeline_seed"],
         args.allow_pending_license,
+        source_prescreen,
     )
     family_stats = connection.execute(
         "SELECT COUNT(DISTINCT family_id), MAX(n) FROM "
